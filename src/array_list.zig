@@ -23,7 +23,8 @@
 const std = @import("std");
 
 pub const With = struct {
-    allocator: ?bool = true,
+    /// This can't be null becausse the managed and unmanaged array lists have different APIs
+    allocator: bool = true,
     alignment: ?Alignment = null,
     item_type: ?type = null,
 
