@@ -22,7 +22,7 @@
 
 pub const array_list = @import("array_list.zig");
 
-pub const isArrayList = array_list.isArrayList;
+pub const isArrayList = array_list.is;
 
 test {
     _ = array_list;

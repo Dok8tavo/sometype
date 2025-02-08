@@ -22,7 +22,7 @@
 
 const std = @import("std");
 
-pub const ArrayListWith = struct {
+pub const With = struct {
     allocator: ?bool = true,
     alignment: ?Alignment = null,
     item_type: ?type = null,
@@ -35,7 +35,7 @@ pub const ArrayListWith = struct {
     };
 };
 
-pub fn isArrayList(comptime T: type, comptime with: ArrayListWith) bool {
+pub fn is(comptime T: type, comptime with: With) bool {
     comptime {
         const info = @typeInfo(T);
 
@@ -92,8 +92,8 @@ pub fn isArrayList(comptime T: type, comptime with: ArrayListWith) bool {
     }
 }
 
-fn expect(comptime T: type, comptime with: ArrayListWith, comptime result: bool) !void {
-    try std.testing.expect(result == isArrayList(T, with));
+fn expect(comptime T: type, comptime with: With, comptime result: bool) !void {
+    try std.testing.expect(result == is(T, with));
 }
 
-test isArrayList {}
+test is {}
