@@ -35,7 +35,7 @@ pub const With = struct {
     };
 };
 
-pub fn is(comptime T: type, comptime with: With) bool {
+pub inline fn is(comptime T: type, comptime with: With) bool {
     comptime {
         const info = @typeInfo(T);
 
@@ -55,7 +55,7 @@ pub fn is(comptime T: type, comptime with: With) bool {
             if (allocator != @hasField(T, "allocator"))
                 return false;
 
-            if (allocator != (std.mem.Allocator == @TypeOf(@as(T, undefined).allocator)))
+            if (allocator and (std.mem.Allocator == @TypeOf(@as(T, undefined).allocator)))
                 return false;
         }
 
@@ -86,7 +86,7 @@ pub fn is(comptime T: type, comptime with: With) bool {
 
         return if (with.allocator) |allocator| switch (allocator) {
             true => T == std.ArrayListAligned(Item, alignment),
-            false => T == std.ArrayListUnmanaged(Item, alignment),
+            false => T == std.ArrayListAlignedUnmanaged(Item, alignment),
         } else T == std.ArrayListAligned(Item, alignment) or
             T == std.ArrayListAlignedUnmanaged(Item, alignment);
     }
@@ -96,4 +96,67 @@ fn expect(comptime T: type, comptime with: With, comptime result: bool) !void {
     try std.testing.expect(result == is(T, with));
 }
 
-test is {}
+const Item1 = u8;
+const Item2 = union {};
+
+const natural_align_1 = @alignOf(Item1);
+const natural_align_2 = @alignOf(Item2);
+
+const more_than_natural_align_1 = natural_align_1 * 2;
+const more_than_natural_align_2 = natural_align_2 * 2;
+
+const less_than_natural_align_1 = natural_align_1 / 2;
+const less_than_natural_align_2 = natural_align_2 / 2;
+
+test "is(non_array_list, .{})" {
+    try expect(u8, .{}, false);
+    try expect(struct {}, .{}, false);
+    try expect(struct {
+        capacity: usize,
+        items: Slice,
+
+        pub const Slice = []u8;
+    }, .{}, false);
+}
+
+test "is(..., .{})" {
+    try expect(std.ArrayList(Item1), .{}, true);
+    try expect(std.ArrayList(Item2), .{}, true);
+
+    try expect(std.ArrayListUnmanaged(Item1), .{}, true);
+    try expect(std.ArrayListUnmanaged(Item2), .{}, true);
+
+    try expect(std.ArrayListAligned(Item1, more_than_natural_align_1), .{}, true);
+    try expect(std.ArrayListAligned(Item2, more_than_natural_align_2), .{}, true);
+
+    try expect(std.ArrayListAlignedUnmanaged(Item1, more_than_natural_align_1), .{}, true);
+    try expect(std.ArrayListAlignedUnmanaged(Item2, more_than_natural_align_2), .{}, true);
+}
+
+test "is(..., .{ .allocator = true })" {
+    try expect(std.ArrayList(Item1), .{ .allocator = true }, true);
+    try expect(std.ArrayList(Item2), .{ .allocator = true }, true);
+
+    try expect(std.ArrayListUnmanaged(Item1), .{ .allocator = true }, false);
+    try expect(std.ArrayListUnmanaged(Item2), .{ .allocator = true }, false);
+
+    try expect(std.ArrayListAligned(Item1, more_than_natural_align_1), .{ .allocator = true }, true);
+    try expect(std.ArrayListAligned(Item2, more_than_natural_align_2), .{ .allocator = true }, true);
+
+    try expect(std.ArrayListAlignedUnmanaged(Item1, more_than_natural_align_1), .{ .allocator = true }, false);
+    try expect(std.ArrayListAlignedUnmanaged(Item2, more_than_natural_align_2), .{ .allocator = true }, false);
+}
+
+test "is(..., .{ .allocator = false })" {
+    try expect(std.ArrayList(Item1), .{ .allocator = false }, false);
+    try expect(std.ArrayList(Item2), .{ .allocator = false }, false);
+
+    try expect(std.ArrayListUnmanaged(Item1), .{ .allocator = false }, true);
+    try expect(std.ArrayListUnmanaged(Item2), .{ .allocator = false }, true);
+
+    try expect(std.ArrayListAligned(Item1, more_than_natural_align_1), .{ .allocator = false }, false);
+    try expect(std.ArrayListAligned(Item2, more_than_natural_align_2), .{ .allocator = false }, false);
+
+    try expect(std.ArrayListAlignedUnmanaged(Item1, more_than_natural_align_1), .{ .allocator = false }, true);
+    try expect(std.ArrayListAlignedUnmanaged(Item2, more_than_natural_align_2), .{ .allocator = false }, true);
+}
