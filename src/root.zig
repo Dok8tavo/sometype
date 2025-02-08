@@ -19,3 +19,36 @@
 // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
+
+const std = @import("std");
+
+pub fn isArrayListAligned(comptime T: type) bool {
+    comptime {
+        const info = @typeInfo(T);
+
+        if (info != .@"struct")
+            return false;
+
+        if (info.@"struct".is_tuple)
+            return false;
+
+        if (!@hasField(T, "Slice"))
+            return false;
+
+        if (@TypeOf(T.Slice) != type)
+            return false;
+
+        const slice_info = @typeInfo(T.Slice);
+
+        if (slice_info != .pointer)
+            return false;
+
+        if (slice_info.pointer.size != .slice)
+            return false;
+
+        const Item = slice_info.pointer.child;
+        const alignment = slice_info.pointer.alignment;
+
+        return std.ArrayListAligned(Item, alignment);
+    }
+}
