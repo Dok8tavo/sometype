@@ -38,10 +38,16 @@ pub fn build(b: *std.Build) void {
     const run_tests = b.addRunArtifact(tests);
     if (b.args) |args| run_tests.addArgs(args);
 
+    // this only serves to make the documentation
+    const object = b.addObject(.{
+        .name = "",
+        .root_module = module,
+    });
+
     const documentation = b.addInstallDirectory(.{
         .install_dir = .prefix,
         .install_subdir = "doc",
-        .source_dir = tests.getEmittedDocs(),
+        .source_dir = object.getEmittedDocs(),
     });
 
     const test_step = b.step("test", "Build and run the tests.");
