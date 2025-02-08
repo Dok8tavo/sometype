@@ -68,15 +68,13 @@ pub inline fn expect(comptime T: type, comptime with: With) Error!void {
         if (@TypeOf(T.Slice) != type)
             return Error.SliceNotAType;
 
-        if (with.allocator) |allocator| {
-            if (allocator != @hasField(T, "allocator")) return switch (allocator) {
-                true => Error.NoAllocator,
-                false => Error.HasAllocator,
-            };
+        if (with.allocator != @hasField(T, "allocator")) return switch (with.allocator) {
+            true => Error.NoAllocator,
+            false => Error.HasAllocator,
+        };
 
-            if (allocator and (std.mem.Allocator == @TypeOf(@as(T, undefined).allocator)))
-                return Error.AllocatorNotAnAllocator;
-        }
+        if (with.allocator and (std.mem.Allocator != @TypeOf(@as(T, undefined).allocator)))
+            return Error.AllocatorNotAnAllocator;
 
         const slice_info = @typeInfo(T.Slice);
 
@@ -103,11 +101,10 @@ pub inline fn expect(comptime T: type, comptime with: With) Error!void {
                 return Error.AlignmentNotExact,
         };
 
-        const right_function = if (with.allocator) |allocator| switch (allocator) {
-            true => T == std.ArrayListAligned(Item, alignment),
-            false => T == std.ArrayListAlignedUnmanaged(Item, alignment),
-        } else T == std.ArrayListAligned(Item, alignment) or
-            T == std.ArrayListAlignedUnmanaged(Item, alignment);
+        const right_function = T == if (with.allocator)
+            std.ArrayListAligned(Item, alignment)
+        else
+            std.ArrayListAlignedUnmanaged(Item, alignment);
 
         if (!right_function)
             return Error.NotFromFunction;
@@ -118,16 +115,23 @@ test "Non Array lists" {
     try std.testing.expectError(Error.NotAStruct, expect(u8, .{}));
     try std.testing.expectError(Error.IsTuple, expect(struct { u8 }, .{}));
     try std.testing.expectError(Error.NoSlice, expect(struct { field: void }, .{}));
+
     try std.testing.expectError(Error.SliceNotAType, expect(struct {
         pub const Slice = "This isn't a type";
     }, .{}));
+
     try std.testing.expectError(Error.SliceTypeNotAPointer, expect(struct {
+        allocator: std.mem.Allocator,
         pub const Slice = @TypeOf(.this_is_the_type_of_a_non_pointer);
     }, .{}));
+
     try std.testing.expectError(Error.SliceTypeNotASlice, expect(struct {
+        allocator: std.mem.Allocator,
         pub const Slice = @TypeOf("This is the type of a non-slice pointer!");
     }, .{}));
+
     try std.testing.expectError(Error.NotFromFunction, expect(struct {
+        allocator: std.mem.Allocator,
         pub const Slice = []u8;
     }, .{}));
 }
