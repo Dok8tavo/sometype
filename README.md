@@ -16,7 +16,7 @@ zig fetch --save=sometype git+https://github.com/Dok8tavo/sometype
 
 Normally, it sould add an entry in your `build.zig.zon`, in the `dependencies` field, that look like this:
 
-```zon
+```zig
 // the name "sometype" can be changed with the `--save=[name]` option
 .sometype = .{
     // this url will point to a specific commit
@@ -88,8 +88,6 @@ pub fn genericFunction2(multi_or_not: anytype) void {
         sometype.assertMultiArrayList(multi_or_not, .{});
 }
 ```
-
-## Steps
 
 # ⚙️ Features
 
