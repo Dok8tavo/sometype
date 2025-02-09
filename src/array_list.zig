@@ -189,6 +189,20 @@ pub inline fn logError(comptime e: Error, comptime T: type, comptime with: With)
     }
 }
 
+pub inline fn Reify(comptime T: type, comptime with: With) type {
+    assert(T, with);
+    const Item = @TypeOf(@as(T, undefined).items[0]);
+    const alignment = @typeInfo(T.Slice).pointer.alignment;
+    return if (with.allocator)
+        std.ArrayListAligned(Item, alignment)
+    else
+        std.ArrayListAlignedUnmanaged(Item, alignment);
+}
+
+pub inline fn reify(array_list: anytype, comptime with: With) Reify(@TypeOf(array_list), with) {
+    return array_list;
+}
+
 fn expectError(comptime T: type, comptime with: With, comptime err: Error) !void {
     try std.testing.expectError(err, expect(T, with));
 }
