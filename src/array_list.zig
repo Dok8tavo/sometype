@@ -249,3 +249,79 @@ test "expect(.{ .allocator = true })" {
         }, with, err);
     }
 }
+
+test "expect(.{ .allocator = false })" {
+    // TODO
+}
+
+test "expect(.{ .allocator = true, .item_type = ... })" {
+    // TODO
+}
+
+test "expect(.{ .allocator = false, .item_type = ... })" {
+    // TODO
+}
+
+test "expect(.{ .allocator = true, .alignment = .natural })" {
+    // TODO
+}
+
+test "expect(.{ .allocator = false, .alignment = .natural })" {
+    // TODO
+}
+
+test "expect(.{ .allocator = true, .item_type = ..., .alignment = .natural })" {
+    // TODO
+}
+
+test "expect(.{ .allocator = false, .item_type = ..., .alignment = .natural })" {
+    // TODO
+}
+
+test "expect(.{ .allocator = true, .alignment = .at_least_natural })" {
+    // TODO
+}
+
+test "expect(.{ .allocator = false, .alignment = .at_least_natural })" {
+    // TODO
+}
+
+test "expect(.{ .allocator = true, .item_type = ..., .alignment = .at_least_natural })" {
+    // TODO
+}
+
+test "expect(.{ .allocator = false, .item_type = ..., .alignment = .at_least_natural })" {
+    // TODO
+}
+
+test "expect(.{ .allocator = true, .alignment = .{ .exact = ... } })" {
+    // TODO
+}
+
+test "expect(.{ .allocator = false, .alignment = .{ .exact = ... } })" {
+    // TODO
+}
+
+test "expect(.{ .allocator = true, .item_type = ..., .alignment = .{ .exact = ... } })" {
+    // TODO
+}
+
+test "expect(.{ .allocator = false, .item_type = ..., .alignment = .{ .exact = ... } })" {
+    // TODO
+}
+
+test "expect(.{ .allocator = true, .alignment = .{ .at_least = ... } })" {
+    // TODO
+}
+
+test "expect(.{ .allocator = false, .alignment = .{ .at_least = ... } })" {
+    // TODO
+}
+
+test "expect(.{ .allocator = true, .item_type = ..., .alignment = .{ .at_least = ... } })" {
+    // TODO
+}
+
+test "expect(.{ .allocator = false, .item_type = ..., .alignment = .{ .at_least = ... } })" {
+    // TODO
+}
