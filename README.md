@@ -1,12 +1,20 @@
 # ⚡ Sometype
 
-A Zig module that helps dealing with `anytype` parameters. It provides functions for testing whether
-a given type was returned by an interface in the standard library, or is a certain kind of builtin.
+A Zig module that helps dealing with `anytype` parameters. It provides functions for testing 
+whether a given type was returned by an interface in the standard library, or is a certain kind of
+builtin.
 
 # ⚙️ Features
 
-I'm not planning to support any version but the latest stable release and the dev branch.
-For now, it's only the dev branch.
+I'm not planning to support any version but the latest stable release and the dev branch. For now,
+it's only the dev branch.
+
+Each interface has an associated With type that defines optional constraints that can be applied
+when verifying a type (e.g., requiring a specific Item type for std.ArrayList). In some cases, a
+required constraint is included when multiple interfaces share the same expect function but differ
+in API, such as managed vs. unmanaged variants.
+
+Full test coverage requires testing all possible combinations of sum-type parameters. Each test must validate every potential error case, in addition to at least one passing case.
 
 ## Zig 0.14-dev
 
