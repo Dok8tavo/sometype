@@ -40,7 +40,7 @@ pub fn build(b: *std.Build) void {
 
     // this only serves to make the documentation
     const object = b.addObject(.{
-        .name = "",
+        .name = "sometype",
         .root_module = module,
     });
 

@@ -23,7 +23,7 @@
 const std = @import("std");
 
 pub const With = struct {
-    /// This can't be null becausse the managed and unmanaged array lists have different APIs
+    /// This can't be null because the managed and unmanaged array lists have different APIs
     allocator: bool = true,
     alignment: ?Alignment = null,
     item_type: ?type = null,
@@ -39,16 +39,26 @@ pub const With = struct {
 pub const Error = error{
     NotAStruct,
     IsTuple,
+    /// There's no `Slice` declaration in the given type.
     NoSlice,
+    /// The `Slice` declaration isn't a `type`.
     SliceNotAType,
     NoAllocator,
     HasAllocator,
+    /// The `allocator` field isn't of type `std.mem.Allocator`.
     AllocatorNotAnAllocator,
+    /// The `Slice` declaration isn't the type of a pointer.
     SliceTypeNotAPointer,
+    /// The `Slice` declaration isn't the type of a slice.
     SliceTypeNotASlice,
+    /// The items of the given type aren't those specified in the `with` parameter.
     ItemNotItem,
+    /// The alignment of the items isn't exactly the one specified in the `with` parameter.
     AlignmentNotExact,
+    /// The alignment of the items doesn't guarantee the one specified in the `with` parameter.
     AlignmentTooSmall,
+    /// The given type respects a lot of requirements, but in the end wasn't returned from
+    /// `std.ArrayList` or its managed/aligned versions.
     NotFromFunction,
 };
 
@@ -177,4 +187,51 @@ pub inline fn logError(comptime e: Error, comptime T: type, comptime with: With)
 
         return fmt(isnt_array_list, .{ args, reason });
     }
+}
+
+fn expectError(comptime T: type, comptime with: With, comptime err: Error) !void {
+    try std.testing.expectError(err, expect(T, with));
+}
+
+test "expect(.{ .allocator = true })" {
+    const with = With{ .allocator = true };
+
+    // passing
+    try expect(std.ArrayList(u8), with);
+    try expect(std.ArrayList(struct {}), with);
+
+    // failing wih `Error.AllocatorNotAnAllocator`
+    try expectError(struct {
+        allocator: void,
+
+        pub const Slice = []u8;
+    }, with, Error.AllocatorNotAnAllocator);
+
+    try expectError(struct { u8 }, with, Error.IsTuple);
+
+    try expectError(struct {
+        pub const Slice = []u8;
+    }, with, Error.NoAllocator);
+
+    try expectError(struct {}, with, Error.NoSlice);
+
+    try expectError(enum {}, with, Error.NotAStruct);
+
+    try expectError(struct {
+        allocator: std.mem.Allocator,
+
+        pub const Slice = []u8;
+    }, with, Error.NotFromFunction);
+
+    try expectError(struct {
+        pub const Slice = "Not a type!";
+    }, with, Error.SliceNotAType);
+
+    try expectError(struct {
+        pub const Slice = @TypeOf(.not_a_pointer);
+    }, with, Error.SliceTypeNotAPointer);
+
+    try expectError(struct {
+        pub const Slice = @TypeOf("not a slice");
+    }, with, Error.SliceTypeNotASlice);
 }
