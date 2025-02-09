@@ -18,31 +18,31 @@ Full test coverage requires testing all possible combinations of sum-type parame
 
 ## Zig 0.14-dev
 
-| Interface                            | Coverage              |
-|--------------------------------------|-----------------------|
-| `std.ArrayList` and similar          | Partially tested      |
-| `std.ArrayHashMap` and similar       | Not implemented       |
-| `std.BoundedArray` and similar       | Not implemented       |
-| `std.BufMap`                         | Not implemented       |
-| `std.BufSet`                         | Not implemented       |
-| `std.StaticStringMap`                | Not implemented       |
-| `std.StaticStringMapWithEql`         | Can't be implemented¹ |
-| `std.DoublyLinkedList`               | Not implemented       |
-| `std.EnumArray`                      | Not implemented       |
-| `std.EnumMap`                        | Not implemented       |
-| `std.EnumSet`                        | Not implemented       |
-| `std.HashMap` and similar            | Not implemented       |
-| `std.MultiArrayList`                 | Not implemented       |
-| `std.PriorityQueue`                  | Can't be implemented² |
-| `std.PriorityDeQueue`                | Can't be implemented² |
-| `std.SegmentedList`                  | Not implemented       |
-| `std.SinglyLinkedList`               | Not implemented       |
-| `std.StaticBitSet` and similar       | Not implemented       |
-| `std.StringHashMap` and similar      | Not implemented       |
-| `std.StringArrayHashMap` and similar | Not implemented       |
-| `std.Treap`                          | Can't be implemented³ |
-| `std.io.GenericReader`               | Can't be implemented⁴ |
-| `std.io.GenericWriter`               | Can't be implemented⁵ |
+| Interface                            | Coverage                      |
+|--------------------------------------|-------------------------------|
+| `std.ArrayList` and similar          | Implemented, partially tested |
+| `std.ArrayHashMap` and similar       | Not implemented               |
+| `std.BoundedArray` and similar       | Not implemented               |
+| `std.BufMap`                         | Not implemented               |
+| `std.BufSet`                         | Not implemented               |
+| `std.StaticStringMap`                | Not implemented               |
+| `std.StaticStringMapWithEql`         | Can't be implemented¹         |
+| `std.DoublyLinkedList`               | Not implemented               |
+| `std.EnumArray`                      | Not implemented               |
+| `std.EnumMap`                        | Not implemented               |
+| `std.EnumSet`                        | Not implemented               |
+| `std.HashMap` and similar            | Not implemented               |
+| `std.MultiArrayList`                 | Implemented, not tested       |
+| `std.PriorityQueue`                  | Can't be implemented²         |
+| `std.PriorityDeQueue`                | Can't be implemented²         |
+| `std.SegmentedList`                  | Not implemented               |
+| `std.SinglyLinkedList`               | Not implemented               |
+| `std.StaticBitSet` and similar       | Not implemented               |
+| `std.StringHashMap` and similar      | Not implemented               |
+| `std.StringArrayHashMap` and similar | Not implemented               |
+| `std.Treap`                          | Can't be implemented³         |
+| `std.io.GenericReader`               | Can't be implemented⁴         |
+| `std.io.GenericWriter`               | Can't be implemented⁵         |
 
 ---
 
