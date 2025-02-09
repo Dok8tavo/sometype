@@ -385,7 +385,48 @@ test "expect(.{ .allocator = false, .item_type = ... })" {
 }
 
 test "expect(.{ .allocator = true, .alignment = .natural })" {
-    // TODO
+    const with = With{ .allocator = true, .alignment = .natural };
+
+    // passing
+    try expect(std.ArrayList(u8), with);
+    try expect(std.ArrayList(struct {}), with);
+
+    inline for (@typeInfo(Error).error_set.?) |error_info| {
+        const err: Error = @field(Error, error_info.name);
+        try expectError(switch (err) {
+            Error.NotAStruct => i32,
+            Error.IsTuple => struct { i32 },
+            Error.NoAllocator => std.ArrayListUnmanaged(u8),
+            Error.AllocatorNotAnAllocator => struct {
+                allocator: @TypeOf(.not_an_allocator),
+            },
+            Error.NoSlice => struct { allocator: std.mem.Allocator },
+            Error.SliceNotAType => struct {
+                allocator: std.mem.Allocator,
+                pub const Slice = "This is a string, not a type";
+            },
+            Error.SliceTypeNotAPointer => struct {
+                allocator: std.mem.Allocator,
+                pub const Slice = @TypeOf(.this_isnt_a_pointer);
+            },
+            Error.SliceTypeNotASlice => struct {
+                allocator: std.mem.Allocator,
+                pub const Slice = @TypeOf("This is a pointer, but not a slice");
+            },
+            Error.NotFromFunction => struct {
+                allocator: std.mem.Allocator,
+                pub const Slice = []u8;
+            },
+            Error.AlignmentNotExact => std.ArrayListAligned(u8, 2 * @alignOf(u8)),
+            // impossible to reach with `.allocator = true`
+            Error.HasAllocator,
+            // impossible to reach with `.item_type = null`
+            Error.ItemNotItem,
+            // impossible to reach with `.alignment = .natural`
+            Error.AlignmentTooSmall,
+            => continue,
+        }, with, err);
+    }
 }
 
 test "expect(.{ .allocator = false, .alignment = .natural })" {
