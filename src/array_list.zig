@@ -296,7 +296,47 @@ test "expect(.{ .allocator = false })" {
 }
 
 test "expect(.{ .allocator = true, .item_type = ... })" {
-    // TODO
+    const Item = union { v1: i32, v2: f32 };
+    const with = With{ .allocator = true, .item_type = Item };
+
+    // passing
+    try expect(std.ArrayList(Item), with);
+
+    inline for (@typeInfo(Error).error_set.?) |error_info| {
+        const err: Error = @field(Error, error_info.name);
+        try expectError(switch (err) {
+            Error.NotAStruct => i32,
+            Error.IsTuple => struct { i32 },
+            Error.ItemNotItem => std.ArrayList(u8),
+            Error.NoAllocator => std.ArrayListUnmanaged(Item),
+            Error.AllocatorNotAnAllocator => struct {
+                allocator: @TypeOf(.not_an_allocator),
+            },
+            Error.NoSlice => struct { allocator: std.mem.Allocator },
+            Error.SliceNotAType => struct {
+                allocator: std.mem.Allocator,
+                pub const Slice = "This is a string, not a type";
+            },
+            Error.SliceTypeNotAPointer => struct {
+                allocator: std.mem.Allocator,
+                pub const Slice = @TypeOf(.this_isnt_a_pointer);
+            },
+            Error.SliceTypeNotASlice => struct {
+                allocator: std.mem.Allocator,
+                pub const Slice = @TypeOf("This is a pointer, but not a slice");
+            },
+            Error.NotFromFunction => struct {
+                allocator: std.mem.Allocator,
+                pub const Slice = []Item;
+            },
+            // impossible to reach with `.allocator = true`
+            Error.HasAllocator,
+            // impossible to reach with `.alignment = null`
+            Error.AlignmentNotExact,
+            Error.AlignmentTooSmall,
+            => continue,
+        }, with, err);
+    }
 }
 
 test "expect(.{ .allocator = false, .item_type = ... })" {
