@@ -18,31 +18,31 @@ Full test coverage requires testing all possible combinations of sum-type parame
 
 ## Zig 0.14-dev
 
-| Interface                            | Coverage                      |
-|--------------------------------------|-------------------------------|
-| `std.ArrayList` and similar          | Implemented, partially tested |
-| `std.ArrayHashMap` and similar       | Not implemented               |
-| `std.BoundedArray` and similar       | Not implemented               |
-| `std.BufMap`                         | Not implemented               |
-| `std.BufSet`                         | Not implemented               |
-| `std.StaticStringMap`                | Not implemented               |
-| `std.StaticStringMapWithEql`         | Can't be implemented[^1]      |
-| `std.DoublyLinkedList`               | Not implemented               |
-| `std.EnumArray`                      | Not implemented               |
-| `std.EnumMap`                        | Not implemented               |
-| `std.EnumSet`                        | Not implemented               |
-| `std.HashMap` and similar            | Not implemented               |
-| `std.MultiArrayList`                 | Implemented, not tested       |
-| `std.PriorityQueue`                  | Can't be implemented[^2]      |
-| `std.PriorityDeQueue`                | Can't be implemented[^2]      |
-| `std.SegmentedList`                  | Not implemented               |
-| `std.SinglyLinkedList`               | Not implemented               |
-| `std.StaticBitSet` and similar       | Not implemented               |
-| `std.StringHashMap` and similar      | Not implemented               |
-| `std.StringArrayHashMap` and similar | Not implemented               |
-| `std.Treap`                          | Can't be implemented[^3]      |
-| `std.io.GenericReader`               | Can't be implemented[^4]      |
-| `std.io.GenericWriter`               | Can't be implemented[^5]      |
+| Interface                            | Implementation | Testing |
+|--------------------------------------|----------------|---------|
+| `std.ArrayList` and similar          | ✅              | 🚧      |
+| `std.ArrayHashMap` and similar       | 🚫             | 🚫      |
+| `std.BoundedArray` and similar       | 🚫             | 🚫      |
+| `std.BufMap`                         | 🚫             | 🚫      |
+| `std.BufSet`                         | 🚫             | 🚫      |
+| `std.StaticStringMap`                | 🚫             | 🚫      |
+| `std.StaticStringMapWithEql`         | ❗[^1]          | ❗[^1]   |
+| `std.DoublyLinkedList`               | 🚫             | 🚫      |
+| `std.EnumArray`                      | 🚫             | 🚫      |
+| `std.EnumMap`                        | 🚫             | 🚫      |
+| `std.EnumSet`                        | 🚫             | 🚫      |
+| `std.HashMap` and similar            | 🚫             | 🚫      |
+| `std.MultiArrayList`                 | ✅              | 🚫      |
+| `std.PriorityQueue`                  | ❗[^2]          | ❗[^2]   |
+| `std.PriorityDeQueue`                | ❗[^2]          | ❗[^2]   |
+| `std.SegmentedList`                  | 🚫             | 🚫      |
+| `std.SinglyLinkedList`               | 🚫             | 🚫      |
+| `std.StaticBitSet` and similar       | 🚫             | 🚫      |
+| `std.StringHashMap` and similar      | 🚫             | 🚫      |
+| `std.StringArrayHashMap` and similar | 🚫             | 🚫      |
+| `std.Treap`                          | ❗[^3]          | ❗[^3]   |
+| `std.io.GenericReader`               | ❗[^4]          | ❗[^4]   |
+| `std.io.GenericWriter`               | ❗[^5]          | ❗[^5]   |
 
 [^1]: Doesn't expose its `eql: fn (a: []const u8, b: []const u8) bool` parameter.
 [^2]: Doesn't expose its `compareFn: fn (context: Context, a: T, b: T) Order` parameter.
