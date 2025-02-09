@@ -4,6 +4,93 @@ A Zig module that helps dealing with `anytype` parameters. It provides functions
 whether a given type was returned by an interface in the standard library, or is a certain kind of
 builtin.
 
+# 📝 Usage
+
+## 🌐 Fetch the package
+
+In your project directory, fetch `sometype` with the following command:
+
+```sh
+zig fetch --save=sometype git+https://github.com/Dok8tavo/sometype
+```
+
+Normally, it sould add an entry in your `build.zig.zon`, in the `dependencies` field, that look like this:
+
+```zon
+// the name "sometype" can be changed with the `--save=[name]` option
+.sometype = .{
+    // this url will point to a specific commit
+    .url = "git+https://github.com/Dok8tavo/sometype",
+    // this hash will ensure that the commit didn't change
+    .hash = ...,
+},
+```
+
+## 📁 Include in project
+
+In your `build.zig` file:
+
+```zig
+pub fn build(b: *std.Build) !void {
+    ...
+
+    const sometype = b.dependency(
+        // this is the `--save=[name]` option you chose
+        "sometype",
+
+        // those aren't mandatory
+        .{
+            .target = ...,
+            .optimize = ...,
+        },
+    );
+
+    // the argument must be "sometype", it's defined inside the module
+    const sometype_module = sometype.module("sometype");
+    // those are the internal tests of the module
+    const sometype_tests = sometype.artifact("test");
+
+    ...
+
+    your_module.addImport(
+        // this argument is yours to define, it'll affect the `@import()` function in your source code
+        "sometype", 
+        sometype_module,
+    );
+
+    your_artifact.root_module.addImport("sometype", sometype_module);
+
+    ...
+}
+```
+
+## 💻 Use in code
+
+```zig
+// the argument of `@import` is the one defined in the `addImport` call in your `build.zig` file.
+const sometype = @import("sometype");
+
+pub fn genericFunction(should_be_an_array_list: anytype) void {
+    // this line will at compile-time determine whether the passed argument was returned by
+    // `std.ArrayList`
+    sometype.array_list.assert(@TypeOf(should_be_an_array_list), .{});
+
+    // this is equivalent
+    sometype.assertArrayList(@TypeOf(should_be_an_array_list), .{});
+
+    // and this too but it could also help zls
+    const array_list = sometype.array_list.reify(should_be_an_array_list);
+}
+
+// the argument could be `std.ArrayListUnmanaged` or `std.MultiArrayList`, so we need to recover
+pub fn genericFunction2(multi_or_not: anytype) void {
+    sometype.expectArrayList(multi_or_not, .{ .allocator = false }) catch
+        sometype.assertMultiArrayList(multi_or_not, .{});
+}
+```
+
+## Steps
+
 # ⚙️ Features
 
 I'm not planning to support any version but the latest stable release and the dev branch. For now,
@@ -26,23 +113,23 @@ Full test coverage requires testing all possible combinations of sum-type parame
 | `std.BufMap`                         | 🚫             | 🚫      |
 | `std.BufSet`                         | 🚫             | 🚫      |
 | `std.StaticStringMap`                | 🚫             | 🚫      |
-| `std.StaticStringMapWithEql`         | ❗[^1]          |        |
+| `std.StaticStringMapWithEql`         | ❗[^1]          |         |
 | `std.DoublyLinkedList`               | 🚫             | 🚫      |
 | `std.EnumArray`                      | 🚫             | 🚫      |
 | `std.EnumMap`                        | 🚫             | 🚫      |
 | `std.EnumSet`                        | 🚫             | 🚫      |
 | `std.HashMap` and similar            | 🚫             | 🚫      |
-| `std.MultiArrayList`                 | ✅              | 🚫     |
-| `std.PriorityQueue`                  | ❗[^2]          |        |
-| `std.PriorityDeQueue`                | ❗[^2]          |        |
+| `std.MultiArrayList`                 | ✅              | 🚫      |
+| `std.PriorityQueue`                  | ❗[^2]          |         |
+| `std.PriorityDeQueue`                | ❗[^2]          |         |
 | `std.SegmentedList`                  | 🚫             | 🚫      |
 | `std.SinglyLinkedList`               | 🚫             | 🚫      |
 | `std.StaticBitSet` and similar       | 🚫             | 🚫      |
 | `std.StringHashMap` and similar      | 🚫             | 🚫      |
 | `std.StringArrayHashMap` and similar | 🚫             | 🚫      |
-| `std.Treap`                          | ❗[^3]          |    |
-| `std.io.GenericReader`               | ❗[^4]          |    |
-| `std.io.GenericWriter`               | ❗[^5]          |    |
+| `std.Treap`                          | ❗[^3]          |         |
+| `std.io.GenericReader`               | ❗[^4]          |         |
+| `std.io.GenericWriter`               | ❗[^5]          |         |
 
 [^1]: Doesn't expose its `eql: fn (a: []const u8, b: []const u8) bool` parameter.
 [^2]: Doesn't expose its `compareFn: fn (context: Context, a: T, b: T) Order` parameter.
