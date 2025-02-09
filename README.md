@@ -117,7 +117,7 @@ Full test coverage requires testing all possible combinations of sum-type parame
 | `std.EnumMap`                        | 🚫             | 🚫      |
 | `std.EnumSet`                        | 🚫             | 🚫      |
 | `std.HashMap` and similar            | 🚫             | 🚫      |
-| `std.MultiArrayList`                 | ✅              | 🚫      |
+| `std.MultiArrayList`                 | ✅              | ✅       |
 | `std.PriorityQueue`                  | ❗[^2]          |         |
 | `std.PriorityDeQueue`                | ❗[^2]          |         |
 | `std.SegmentedList`                  | 🚫             | 🚫      |
