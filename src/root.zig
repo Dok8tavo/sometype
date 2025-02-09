@@ -20,9 +20,12 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+const std = @import("std");
+
 pub const array_list = @import("array_list.zig");
 
-pub const isArrayList = array_list.is;
+pub const expectArrayList = array_list.expect;
+pub const assertArrayList = array_list.assert;
 
 test {
     _ = array_list;

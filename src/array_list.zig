@@ -91,11 +91,11 @@ pub inline fn expect(comptime T: type, comptime with: With) Error!void {
             return Error.ItemNotItem;
 
         if (with.alignment) |with_alignment| switch (with_alignment) {
-            .exactly => |exact_alignment| if (exact_alignment != alignment)
+            .exact => |exact_alignment| if (exact_alignment != alignment)
                 return Error.AlignmentNotExact,
-            .at_least => |least_alignment| if (least_alignment <= alignment)
+            .at_least => |least_alignment| if (alignment < least_alignment)
                 return Error.AlignmentTooSmall,
-            .at_least_natural => if (@alignOf(Item) <= alignment)
+            .at_least_natural => if (alignment < @alignOf(Item))
                 return Error.AlignmentTooSmall,
             .natural => if (@alignOf(Item) != alignment)
                 return Error.AlignmentNotExact,
@@ -111,27 +111,70 @@ pub inline fn expect(comptime T: type, comptime with: With) Error!void {
     }
 }
 
-test "Non Array lists" {
-    try std.testing.expectError(Error.NotAStruct, expect(u8, .{}));
-    try std.testing.expectError(Error.IsTuple, expect(struct { u8 }, .{}));
-    try std.testing.expectError(Error.NoSlice, expect(struct { field: void }, .{}));
+pub inline fn assert(comptime T: type, comptime with: With) void {
+    expect(T, with) catch |e| @compileError(logError(e, T, with));
+}
 
-    try std.testing.expectError(Error.SliceNotAType, expect(struct {
-        pub const Slice = "This isn't a type";
-    }, .{}));
+pub inline fn logError(comptime e: Error, comptime T: type, comptime with: With) []const u8 {
+    comptime {
+        const fmt = std.fmt.comptimePrint;
+        const isnt_array_list = fmt(
+            "The type `{s}` isn't a `std.ArrayList{s}{s}({{s}})` because {{s}}!",
+            .{
+                @typeName(T),
+                if (with.alignment) |_| "Aligned" else "",
+                if (with.allocator) "" else "Unmanaged",
+            },
+        );
 
-    try std.testing.expectError(Error.SliceTypeNotAPointer, expect(struct {
-        allocator: std.mem.Allocator,
-        pub const Slice = @TypeOf(.this_is_the_type_of_a_non_pointer);
-    }, .{}));
+        const args = switch (e) {
+            Error.AlignmentNotExact => fmt("..., {}", .{switch (with.alignment.?) {
+                .exact => |exact| exact,
+                .natural => @alignOf(@typeInfo(T.Slice).pointer.child),
+                .at_least, .at_least_natural => unreachable,
+            }}),
+            Error.AlignmentTooSmall => fmt("..., >={}", .{switch (with.alignment.?) {
+                .at_least => |at_least| at_least,
+                .at_least_natural => @alignOf(@typeInfo(T.Slice).pointer.child),
+                .exact, .natural => unreachable,
+            }}),
+            Error.ItemNotItem => fmt("{s}, ...", .{@typeName(with.item_type.?)}),
+            else => "...",
+        };
 
-    try std.testing.expectError(Error.SliceTypeNotASlice, expect(struct {
-        allocator: std.mem.Allocator,
-        pub const Slice = @TypeOf("This is the type of a non-slice pointer!");
-    }, .{}));
+        const reason = switch (e) {
+            Error.AlignmentNotExact, Error.AlignmentTooSmall => fmt(
+                "its items alignment is {}",
+                .{@typeInfo(T.Slice).pointer.alignment},
+            ),
+            Error.AllocatorNotAnAllocator => fmt(
+                "its `allocator` field isn't a `std.mem.Allocator`, but `{s}` instead",
+                .{@typeName(@TypeOf(@as(T, undefined).allocator))},
+            ),
+            Error.HasAllocator => "it's not supposed to bundle an allocator",
+            Error.IsTuple => "it's a tuple",
+            Error.ItemNotItem => fmt(
+                "its items are `{s}`s",
+                .{@typeName(@typeInfo(T.Slice).pointer.child)},
+            ),
+            Error.NoAllocator => "it's supposed to bundle an allocator",
+            Error.NoSlice => "it has no `Slice` declaration",
+            Error.NotAStruct => "it's not a `struct`",
+            Error.NotFromFunction => "it's not a result of the right function",
+            Error.SliceNotAType => fmt(
+                "its `Slice` declaration isn't a type but a `{s}` insead",
+                .{@typeName(@TypeOf(T.Slice))},
+            ),
+            Error.SliceTypeNotAPointer => fmt(
+                "its `Slice` declaration isn't the type of a pointer but of a `.{s}` instead",
+                .{@tagName(@typeInfo(T.Slice))},
+            ),
+            Error.SliceTypeNotASlice => fmt(
+                "its `Slice` declaration isn't the type of a slice but a pointer of size `.{s}` instead",
+                .{@tagName(@typeInfo(T.Slice).pointer.size)},
+            ),
+        };
 
-    try std.testing.expectError(Error.NotFromFunction, expect(struct {
-        allocator: std.mem.Allocator,
-        pub const Slice = []u8;
-    }, .{}));
+        return fmt(isnt_array_list, .{ args, reason });
+    }
 }
