@@ -39,14 +39,14 @@ pub const With = struct {
 pub const Error = error{
     NotAStruct,
     IsTuple,
-    /// There's no `Slice` declaration in the given type.
-    NoSlice,
-    /// The `Slice` declaration isn't a `type`.
-    SliceNotAType,
     NoAllocator,
     HasAllocator,
     /// The `allocator` field isn't of type `std.mem.Allocator`.
     AllocatorNotAnAllocator,
+    /// There's no `Slice` declaration in the given type.
+    NoSlice,
+    /// The `Slice` declaration isn't a `type`.
+    SliceNotAType,
     /// The `Slice` declaration isn't the type of a pointer.
     SliceTypeNotAPointer,
     /// The `Slice` declaration isn't the type of a slice.
@@ -72,12 +72,6 @@ pub inline fn expect(comptime T: type, comptime with: With) Error!void {
         if (info.@"struct".is_tuple)
             return Error.IsTuple;
 
-        if (!@hasDecl(T, "Slice"))
-            return Error.NoSlice;
-
-        if (@TypeOf(T.Slice) != type)
-            return Error.SliceNotAType;
-
         if (with.allocator != @hasField(T, "allocator")) return switch (with.allocator) {
             true => Error.NoAllocator,
             false => Error.HasAllocator,
@@ -85,6 +79,12 @@ pub inline fn expect(comptime T: type, comptime with: With) Error!void {
 
         if (with.allocator and (std.mem.Allocator != @TypeOf(@as(T, undefined).allocator)))
             return Error.AllocatorNotAnAllocator;
+
+        if (!@hasDecl(T, "Slice"))
+            return Error.NoSlice;
+
+        if (@TypeOf(T.Slice) != type)
+            return Error.SliceNotAType;
 
         const slice_info = @typeInfo(T.Slice);
 
@@ -214,38 +214,38 @@ test "expect(.{ .allocator = true })" {
     try expect(std.ArrayList(u8), with);
     try expect(std.ArrayList(struct {}), with);
 
-    // failing wih `Error.AllocatorNotAnAllocator`
-    try expectError(struct {
-        allocator: void,
-
-        pub const Slice = []u8;
-    }, with, Error.AllocatorNotAnAllocator);
-
-    try expectError(struct { u8 }, with, Error.IsTuple);
-
-    try expectError(struct {
-        pub const Slice = []u8;
-    }, with, Error.NoAllocator);
-
-    try expectError(struct {}, with, Error.NoSlice);
-
-    try expectError(enum {}, with, Error.NotAStruct);
-
-    try expectError(struct {
-        allocator: std.mem.Allocator,
-
-        pub const Slice = []u8;
-    }, with, Error.NotFromFunction);
-
-    try expectError(struct {
-        pub const Slice = "Not a type!";
-    }, with, Error.SliceNotAType);
-
-    try expectError(struct {
-        pub const Slice = @TypeOf(.not_a_pointer);
-    }, with, Error.SliceTypeNotAPointer);
-
-    try expectError(struct {
-        pub const Slice = @TypeOf("not a slice");
-    }, with, Error.SliceTypeNotASlice);
+    inline for (@typeInfo(Error).error_set.?) |error_info| {
+        const err: Error = @field(Error, error_info.name);
+        try expectError(switch (err) {
+            Error.NotAStruct => i32,
+            Error.IsTuple => struct { i32 },
+            Error.NoAllocator => struct { field: bool },
+            Error.AllocatorNotAnAllocator => struct {
+                allocator: @TypeOf(.not_an_allocator),
+            },
+            Error.NoSlice => struct { allocator: std.mem.Allocator },
+            Error.SliceNotAType => struct {
+                allocator: std.mem.Allocator,
+                pub const Slice = "This is a string, not a type";
+            },
+            Error.SliceTypeNotAPointer => struct {
+                allocator: std.mem.Allocator,
+                pub const Slice = @TypeOf(.this_isnt_a_pointer);
+            },
+            Error.SliceTypeNotASlice => struct {
+                allocator: std.mem.Allocator,
+                pub const Slice = @TypeOf("This is a pointer, but not a slice");
+            },
+            Error.NotFromFunction => struct {
+                allocator: std.mem.Allocator,
+                pub const Slice = []u8;
+            },
+            // impossible to reach with `.allocator = true`
+            Error.HasAllocator => continue,
+            // impossible to reach with `.item_type = null`
+            Error.ItemNotItem => continue,
+            // impossible to reach with `.alignment = null`
+            Error.AlignmentNotExact, Error.AlignmentTooSmall => continue,
+        }, with, err);
+    }
 }
