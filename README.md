@@ -9,8 +9,8 @@ builtin.
 I'm not planning to support any version but the latest stable release and the dev branch. For now,
 it's only the dev branch.
 
-Each interface has an associated With type that defines optional constraints that can be applied
-when verifying a type (e.g., requiring a specific Item type for std.ArrayList). In some cases, a
+Each interface has an associated `With` type that defines optional constraints that can be applied
+when verifying a type (e.g., requiring a specific `Item` type for `std.ArrayList`). In some cases, a
 required constraint is included when multiple interfaces share the same expect function but differ
 in API, such as managed vs. unmanaged variants.
 
@@ -26,23 +26,23 @@ Full test coverage requires testing all possible combinations of sum-type parame
 | `std.BufMap`                         | 🚫             | 🚫      |
 | `std.BufSet`                         | 🚫             | 🚫      |
 | `std.StaticStringMap`                | 🚫             | 🚫      |
-| `std.StaticStringMapWithEql`         | ❗[^1]          | ❗[^1]   |
+| `std.StaticStringMapWithEql`         | ❗[^1]          |        |
 | `std.DoublyLinkedList`               | 🚫             | 🚫      |
 | `std.EnumArray`                      | 🚫             | 🚫      |
 | `std.EnumMap`                        | 🚫             | 🚫      |
 | `std.EnumSet`                        | 🚫             | 🚫      |
 | `std.HashMap` and similar            | 🚫             | 🚫      |
-| `std.MultiArrayList`                 | ✅              | 🚫      |
-| `std.PriorityQueue`                  | ❗[^2]          | ❗[^2]   |
-| `std.PriorityDeQueue`                | ❗[^2]          | ❗[^2]   |
+| `std.MultiArrayList`                 | ✅              | 🚫     |
+| `std.PriorityQueue`                  | ❗[^2]          |        |
+| `std.PriorityDeQueue`                | ❗[^2]          |        |
 | `std.SegmentedList`                  | 🚫             | 🚫      |
 | `std.SinglyLinkedList`               | 🚫             | 🚫      |
 | `std.StaticBitSet` and similar       | 🚫             | 🚫      |
 | `std.StringHashMap` and similar      | 🚫             | 🚫      |
 | `std.StringArrayHashMap` and similar | 🚫             | 🚫      |
-| `std.Treap`                          | ❗[^3]          | ❗[^3]   |
-| `std.io.GenericReader`               | ❗[^4]          | ❗[^4]   |
-| `std.io.GenericWriter`               | ❗[^5]          | ❗[^5]   |
+| `std.Treap`                          | ❗[^3]          |    |
+| `std.io.GenericReader`               | ❗[^4]          |    |
+| `std.io.GenericWriter`               | ❗[^5]          |    |
 
 [^1]: Doesn't expose its `eql: fn (a: []const u8, b: []const u8) bool` parameter.
 [^2]: Doesn't expose its `compareFn: fn (context: Context, a: T, b: T) Order` parameter.
