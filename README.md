@@ -112,7 +112,7 @@ Full test coverage requires testing all possible combinations of sum-type parame
 | [`std.BufSet`](https://ziglang.org/documentation/master/std/#std.buf_set.BufSet)                                             | 🚫             |
 | [`std.StaticStringMap`](https://ziglang.org/documentation/master/std/#std.static_string_map.StaticStringMap)                 | 🚫             |
 | [`std.StaticStringMapWithEql`](https://ziglang.org/documentation/master/std/#std.static_string_map.StaticStringMapWithEql)   | ❗[^1]          |
-| [`std.DoublyLinkedList`](https://ziglang.org/documentation/master/std/#std.linked_list.DoublyLinkedList)                     | 🚫             |
+| [`std.linked_list` doubly and singly](https://ziglang.org/documentation/master/std/#std.linked_list)                         | 🚧             |
 | [`std.EnumArray`](https://ziglang.org/documentation/master/std/#std.enums.EnumArray)                                         | 🚫             |
 | [`std.EnumMap`](https://ziglang.org/documentation/master/std/#std.enums.EnumMap)                                             | 🚫             |
 | [`std.EnumSet`](https://ziglang.org/documentation/master/std/#std.enums.EnumSet)                                             | 🚫             |
@@ -121,7 +121,6 @@ Full test coverage requires testing all possible combinations of sum-type parame
 | [`std.PriorityQueue`](https://ziglang.org/documentation/master/std/#std.priority_queue.PriorityQueue)                        | ❗[^2]          |
 | [`std.PriorityDeQueue`](https://ziglang.org/documentation/master/std/#std.priority_dequeue.PriorityDequeue)                  | ❗[^2]          |
 | [`std.SegmentedList`](https://ziglang.org/documentation/master/std/#std.segmented_list.SegmentedList)                        | 🚫             |
-| [`std.SinglyLinkedList`](https://ziglang.org/documentation/master/std/#std.linked_list.SinglyLinkedList)                     | 🚫             |
 | [`std.StaticBitSet` and similar](https://ziglang.org/documentation/master/std/#std.bit_set)                                  | 🚫             |
 | [`std.StringHashMap` and similar](https://ziglang.org/documentation/master/std/#std.hash_map.StringHashMap)                  | 🚫             |
 | [`std.StringArrayHashMap` and similar](https://ziglang.org/documentation/master/std/#std.array_hash_map.StringArrayHashMap)  | 🚫             |

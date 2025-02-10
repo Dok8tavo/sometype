@@ -23,15 +23,20 @@
 const std = @import("std");
 
 pub const array_list = @import("array_list.zig");
+pub const linked_list = @import("linked_list.zig");
 pub const multi_array_list = @import("multi_array_list.zig");
 
 pub const expectArrayList = array_list.expect;
 pub const assertArrayList = array_list.assert;
+
+pub const expectLinkedList = linked_list.expect;
+pub const assertLinkedListt = linked_list.assert;
 
 pub const expectMultiArrayList = multi_array_list.expect;
 pub const assertMultiArrayList = multi_array_list.assert;
 
 test {
     _ = array_list;
+    _ = linked_list;
     _ = multi_array_list;
 }
