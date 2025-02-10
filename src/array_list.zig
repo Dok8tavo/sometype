@@ -612,7 +612,46 @@ test "expect(.{ .allocator = true, .alignment = .at_least_natural })" {
 }
 
 test "expect(.{ .allocator = false, .alignment = .at_least_natural })" {
-    // TODO
+    const with = With{ .allocator = false, .alignment = .at_least_natural };
+
+    // passing
+    try expect(std.ArrayListUnmanaged(struct {}), with);
+    try expect(std.ArrayListAlignedUnmanaged(*const u8, @alignOf(*const u8) * 2), with);
+
+    inline for (@typeInfo(Error).error_set.?) |error_info| {
+        const err: Error = @field(Error, error_info.name);
+        try expectError(switch (err) {
+            Error.NotAStruct => i32,
+            Error.IsTuple => struct { i32 },
+            Error.HasAllocator => std.ArrayList(u8),
+            Error.NoSlice => struct { is_struct: bool = true },
+            Error.SliceNotAType => struct {
+                is_struct: bool = true,
+                pub const Slice = "This is a string, not a type";
+            },
+            Error.SliceTypeNotAPointer => struct {
+                is_struct: bool = true,
+                pub const Slice = @TypeOf(.this_isnt_a_pointer);
+            },
+            Error.SliceTypeNotASlice => struct {
+                is_struct: bool = true,
+                pub const Slice = @TypeOf("This is a pointer, but not a slice");
+            },
+            Error.NotFromFunction => struct {
+                is_struct: bool = true,
+                pub const Slice = []u8;
+            },
+            Error.AlignmentTooSmall => std.ArrayListAlignedUnmanaged([]u16, @alignOf([]u16) / 2),
+            // impossible to reach with `.allocator = false`
+            Error.NoAllocator,
+            Error.AllocatorNotAnAllocator,
+            // impossible to reach with `.item_type = null`
+            Error.ItemNotItem,
+            // impossible to reach with `.alignment = .natural`
+            Error.AlignmentNotExact,
+            => continue,
+        }, with, err);
+    }
 }
 
 test "expect(.{ .allocator = true, .item_type = ..., .alignment = .at_least_natural })" {
