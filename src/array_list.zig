@@ -206,6 +206,13 @@ pub inline fn reify(array_list: anytype, comptime with: With) Reify(@TypeOf(arra
 pub inline fn reifyPtr(
     array_list_ptr: anytype,
     comptime with: With,
+) *const Reify(@TypeOf(array_list_ptr.*), with) {
+    return array_list_ptr;
+}
+
+pub inline fn reifyVarPtr(
+    array_list_ptr: anytype,
+    comptime with: With,
 ) *Reify(@TypeOf(array_list_ptr.*), with) {
     return array_list_ptr;
 }

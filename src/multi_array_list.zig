@@ -168,6 +168,12 @@ pub inline fn reify(
 pub inline fn reifyPtr(
     multi_array_list_ptr: anytype,
     comptime with: With,
+) *const Reify(@TypeOf(multi_array_list_ptr.*), with) {
+    return multi_array_list_ptr;
+}
+pub inline fn reifyVarPtr(
+    multi_array_list_ptr: anytype,
+    comptime with: With,
 ) *Reify(@TypeOf(multi_array_list_ptr.*), with) {
     return multi_array_list_ptr;
 }
