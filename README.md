@@ -105,7 +105,7 @@ Full test coverage requires testing all possible combinations of sum-type parame
 
 | Interface                                                                                                                    | Implementation |
 |------------------------------------------------------------------------------------------------------------------------------|----------------|
-| [`std.ArrayList` and similar](https://ziglang.org/documentation/master/std/#std.array_list)                                  | 🚧             |
+| [`std.ArrayList` and similar](https://ziglang.org/documentation/master/std/#std.array_list)                                  | ✅              |
 | [`std.ArrayHashMap` and similar](https://ziglang.org/documentation/master/std/#std.array_hash_map.ArrayHashMapWithAllocator) | 🚫             |
 | [`std.BoundedArray` and similar](https://ziglang.org/documentation/master/std/#std.bounded_array)                            | 🚫             |
 | [`std.BufMap`](https://ziglang.org/documentation/master/std/#std.buf_map.BufMap)                                             | 🚫             |

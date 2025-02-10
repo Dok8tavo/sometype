@@ -26,7 +26,7 @@ pub const With = struct {
     /// This can't be null because the managed and unmanaged array lists have different APIs
     allocator: bool = true,
     alignment: ?Alignment = null,
-    item_type: ?type = null,
+    Item: ?type = null,
 
     pub const Alignment = union(enum) {
         exact: u16,
@@ -48,9 +48,9 @@ pub const Error = error{
     /// The `Slice` declaration isn't a `type`.
     SliceNotAType,
     /// The `Slice` declaration isn't the type of a pointer.
-    SliceTypeNotAPointer,
+    SliceNotAPointerType,
     /// The `Slice` declaration isn't the type of a slice.
-    SliceTypeNotASlice,
+    SliceNotASliceType,
     /// The items of the given type aren't those specified in the `with` parameter.
     ItemNotItem,
     /// The alignment of the items isn't exactly the one specified in the `with` parameter.
@@ -89,15 +89,15 @@ pub inline fn expect(comptime T: type, comptime with: With) Error!void {
         const slice_info = @typeInfo(T.Slice);
 
         if (slice_info != .pointer)
-            return Error.SliceTypeNotAPointer;
+            return Error.SliceNotAPointerType;
 
         if (slice_info.pointer.size != .slice)
-            return Error.SliceTypeNotASlice;
+            return Error.SliceNotASliceType;
 
         const Item = slice_info.pointer.child;
         const alignment = slice_info.pointer.alignment;
 
-        if (with.item_type) |item_type| if (item_type != Item)
+        if (with.Item) |item_type| if (item_type != Item)
             return Error.ItemNotItem;
 
         if (with.alignment) |with_alignment| switch (with_alignment) {
@@ -148,7 +148,7 @@ pub inline fn logError(comptime e: Error, comptime T: type, comptime with: With)
                 .at_least_natural => @alignOf(@typeInfo(T.Slice).pointer.child),
                 .exact, .natural => unreachable,
             }}),
-            Error.ItemNotItem => fmt("{s}, ...", .{@typeName(with.item_type.?)}),
+            Error.ItemNotItem => fmt("{s}, ...", .{@typeName(with.Item.?)}),
             else => "...",
         };
 
@@ -175,11 +175,11 @@ pub inline fn logError(comptime e: Error, comptime T: type, comptime with: With)
                 "its `Slice` declaration isn't a type but a `{s}` insead",
                 .{@typeName(@TypeOf(T.Slice))},
             ),
-            Error.SliceTypeNotAPointer => fmt(
+            Error.SliceNotAPointerType => fmt(
                 "its `Slice` declaration isn't the type of a pointer but of a `.{s}` instead",
                 .{@tagName(@typeInfo(T.Slice))},
             ),
-            Error.SliceTypeNotASlice => fmt(
+            Error.SliceNotASliceType => fmt(
                 "its `Slice` declaration isn't the type of a slice but a pointer of size `.{s}` instead",
                 .{@tagName(@typeInfo(T.Slice).pointer.size)},
             ),
@@ -199,679 +199,179 @@ pub inline fn Reify(comptime T: type, comptime with: With) type {
         std.ArrayListAlignedUnmanaged(Item, alignment);
 }
 
-pub inline fn reify(array_list: anytype, comptime with: With) Reify(@TypeOf(array_list), with) {
+pub inline fn reify(
+    array_list: anytype,
+    comptime with: With,
+) *const Reify(@TypeOf(array_list.*), with) {
     return array_list;
 }
 
-pub inline fn reifyPtr(
-    array_list_ptr: anytype,
+pub inline fn reifyVar(
+    array_list: anytype,
     comptime with: With,
-) *const Reify(@TypeOf(array_list_ptr.*), with) {
-    return array_list_ptr;
-}
-
-pub inline fn reifyVarPtr(
-    array_list_ptr: anytype,
-    comptime with: With,
-) *Reify(@TypeOf(array_list_ptr.*), with) {
-    return array_list_ptr;
+) *Reify(@TypeOf(array_list.*), with) {
+    return array_list;
 }
 
 fn expectError(comptime T: type, comptime with: With, comptime err: Error) !void {
     try std.testing.expectError(err, expect(T, with));
 }
 
-test "expect(.{ .allocator = true })" {
-    const with = With{ .allocator = true };
+test expect {
+    // with only `.allocaator = true` anything that's passed to `std.ArrayListAligned` will work
+    try expect(std.ArrayList(u8), .{});
+    try expect(std.ArrayListAligned(u32, 1), .{});
 
-    // passing
-    try expect(std.ArrayList(u8), with);
-    try expect(std.ArrayList(struct {}), with);
+    // but anything that's passed to `std.ArrayListUnmanagedAligned` won't
+    try expectError(std.ArrayListUnmanaged(u8), .{}, Error.NoAllocator);
+    try expectError(std.ArrayListAlignedUnmanaged(*const anyopaque, 1024), .{}, Error.NoAllocator);
 
-    inline for (@typeInfo(Error).error_set.?) |error_info| {
-        const err: Error = @field(Error, error_info.name);
-        try expectError(switch (err) {
-            Error.NotAStruct => i32,
-            Error.IsTuple => struct { i32 },
-            Error.NoAllocator => std.ArrayListUnmanaged(u8),
-            Error.AllocatorNotAnAllocator => struct {
-                allocator: @TypeOf(.not_an_allocator),
-            },
-            Error.NoSlice => struct { allocator: std.mem.Allocator },
-            Error.SliceNotAType => struct {
-                allocator: std.mem.Allocator,
-                pub const Slice = "This is a string, not a type";
-            },
-            Error.SliceTypeNotAPointer => struct {
-                allocator: std.mem.Allocator,
-                pub const Slice = @TypeOf(.this_isnt_a_pointer);
-            },
-            Error.SliceTypeNotASlice => struct {
-                allocator: std.mem.Allocator,
-                pub const Slice = @TypeOf("This is a pointer, but not a slice");
-            },
-            Error.NotFromFunction => struct {
-                allocator: std.mem.Allocator,
-                pub const Slice = []u8;
-            },
-            // impossible to reach with `.allocator = true`
-            Error.HasAllocator,
-            // impossible to reach with `.item_type = null`
-            Error.ItemNotItem,
-            // impossible to reach with `.alignment = null`
-            Error.AlignmentNotExact,
-            Error.AlignmentTooSmall,
-            => continue,
-        }, with, err);
-    }
-}
+    // with only `.allocator = false` anything that's passed to `std.ArrayListUnmanagedAligned`
+    // will work
+    try expect(std.ArrayListUnmanaged(enum {}), .{ .allocator = false });
+    try expect(std.ArrayListAlignedUnmanaged(struct { field: bool }, 64), .{ .allocator = false });
 
-test "expect(.{ .allocator = false })" {
-    const with = With{ .allocator = false };
+    // but anything that's passed to `std.ArrayListAligned` won't
+    try expectError(std.ArrayList(u8), .{ .allocator = false }, Error.HasAllocator);
+    try expectError(
+        std.ArrayListAligned(*const anyopaque, 1024),
+        .{ .allocator = false },
+        Error.HasAllocator,
+    );
 
-    // passing
-    try expect(std.ArrayListUnmanaged(u8), with);
-    try expect(std.ArrayListUnmanaged(struct {}), with);
+    // when the `.Item` is set, the passed `T` type must correspond
+    try expect(std.ArrayList([]const u8), .{ .Item = []const u8 });
+    try expectError(std.ArrayList(i32), .{ .Item = f64 }, Error.ItemNotItem);
 
-    inline for (@typeInfo(Error).error_set.?) |error_info| {
-        const err: Error = @field(Error, error_info.name);
-        try expectError(switch (err) {
-            Error.NotAStruct => i32,
-            Error.IsTuple => struct { i32 },
-            Error.HasAllocator => std.ArrayList(u8),
-            Error.NoSlice => struct { is_struct: bool = true },
-            Error.SliceNotAType => struct {
-                is_struct: bool = true,
-                pub const Slice = "This is a string, not a type";
-            },
-            Error.SliceTypeNotAPointer => struct {
-                is_struct: bool = true,
-                pub const Slice = @TypeOf(.this_isnt_a_pointer);
-            },
-            Error.SliceTypeNotASlice => struct {
-                is_struct: bool = true,
-                pub const Slice = @TypeOf("This is a pointer, but not a slice");
-            },
-            Error.NotFromFunction => struct {
-                is_struct: bool = true,
-                pub const Slice = []u8;
-            },
-            // impossible to reach with `.allocator = false`
-            Error.NoAllocator,
-            Error.AllocatorNotAnAllocator,
-            // impossible to reach with `.item_type = null`
-            Error.ItemNotItem,
-            // impossible to reach with `.alignment = null`
-            Error.AlignmentNotExact,
-            Error.AlignmentTooSmall,
-            => continue,
-        }, with, err);
-    }
-}
+    // when the `.alignment` is `.natural`, the alignment must be the natural alignment of the item
+    try expect(std.ArrayList(i32), .{ .alignment = .natural });
+    try expect(std.ArrayListAligned(i32, @alignOf(i32)), .{ .alignment = .natural });
+    try expectError(
+        std.ArrayListAligned(i32, @alignOf(i32) / 2),
+        .{ .alignment = .natural },
+        Error.AlignmentNotExact,
+    );
 
-test "expect(.{ .allocator = true, .item_type = ... })" {
-    const Item = union { v1: i32, v2: f32 };
-    const with = With{ .allocator = true, .item_type = Item };
+    try expectError(
+        std.ArrayListAligned(i32, @alignOf(i32) * 2),
+        .{ .alignment = .natural },
+        Error.AlignmentNotExact,
+    );
 
-    // passing
-    try expect(std.ArrayList(Item), with);
+    // when the `.alignment` is `.exactly`, the alignment must be the given alignment
+    try expect(std.ArrayListAligned(i32, 8), .{ .alignment = .{ .exact = 8 } });
+    try expect(std.ArrayListAligned(u8, 8), .{ .alignment = .{ .exact = 8 } });
+    try expectError(
+        std.ArrayListAligned(i32, 16),
+        .{ .alignment = .{ .exact = 8 } },
+        Error.AlignmentNotExact,
+    );
 
-    inline for (@typeInfo(Error).error_set.?) |error_info| {
-        const err: Error = @field(Error, error_info.name);
-        try expectError(switch (err) {
-            Error.NotAStruct => i32,
-            Error.IsTuple => struct { i32 },
-            Error.ItemNotItem => std.ArrayList(u8),
-            Error.NoAllocator => std.ArrayListUnmanaged(Item),
-            Error.AllocatorNotAnAllocator => struct {
-                allocator: @TypeOf(.not_an_allocator),
-            },
-            Error.NoSlice => struct { allocator: std.mem.Allocator },
-            Error.SliceNotAType => struct {
-                allocator: std.mem.Allocator,
-                pub const Slice = "This is a string, not a type";
-            },
-            Error.SliceTypeNotAPointer => struct {
-                allocator: std.mem.Allocator,
-                pub const Slice = @TypeOf(.this_isnt_a_pointer);
-            },
-            Error.SliceTypeNotASlice => struct {
-                allocator: std.mem.Allocator,
-                pub const Slice = @TypeOf("This is a pointer, but not a slice");
-            },
-            Error.NotFromFunction => struct {
-                allocator: std.mem.Allocator,
-                pub const Slice = []Item;
-            },
-            // impossible to reach with `.allocator = true`
-            Error.HasAllocator,
-            // impossible to reach with `.alignment = null`
-            Error.AlignmentNotExact,
-            Error.AlignmentTooSmall,
-            => continue,
-        }, with, err);
-    }
-}
+    try expectError(
+        std.ArrayListAligned(i32, 4),
+        .{ .alignment = .{ .exact = 8 } },
+        Error.AlignmentNotExact,
+    );
 
-test "expect(.{ .allocator = false, .item_type = ... })" {
-    const Item = struct { field: bool };
-    const with = With{ .allocator = false, .item_type = Item };
+    try expectError(
+        std.ArrayList(u8),
+        .{ .alignment = .{ .exact = @alignOf(u8) * 2 } },
+        Error.AlignmentNotExact,
+    );
 
-    // passing
-    try expect(std.ArrayListUnmanaged(Item), with);
+    try expectError(
+        std.ArrayList(i32),
+        .{ .alignment = .{ .exact = @alignOf(i32) / 2 } },
+        Error.AlignmentNotExact,
+    );
 
-    inline for (@typeInfo(Error).error_set.?) |error_info| {
-        const err: Error = @field(Error, error_info.name);
-        try expectError(switch (err) {
-            Error.NotAStruct => i32,
-            Error.IsTuple => struct { i32 },
-            Error.HasAllocator => std.ArrayList(u8),
-            Error.NoSlice => struct { is_struct: bool = true },
-            Error.SliceNotAType => struct {
-                is_struct: bool = true,
-                pub const Slice = "This is a string, not a type";
-            },
-            Error.SliceTypeNotAPointer => struct {
-                is_struct: bool = true,
-                pub const Slice = @TypeOf(.this_isnt_a_pointer);
-            },
-            Error.SliceTypeNotASlice => struct {
-                is_struct: bool = true,
-                pub const Slice = @TypeOf("This is a pointer, but not a slice");
-            },
-            Error.ItemNotItem => struct {
-                is_struct: bool = true,
-                pub const Slice = []u8;
-            },
-            Error.NotFromFunction => struct {
-                is_struct: bool = true,
-                pub const Slice = []Item;
-            },
-            // impossible to reach with `.allocator = false`
-            Error.NoAllocator,
-            Error.AllocatorNotAnAllocator,
-            // impossible to reach with `.alignment = null`
-            Error.AlignmentNotExact,
-            Error.AlignmentTooSmall,
-            => continue,
-        }, with, err);
-    }
-}
+    // when the `.alignment` is `.at_least_natural`, the alignment must be the natural alignment or more
+    try expect(std.ArrayList(i32), .{ .alignment = .at_least_natural });
+    try expect(std.ArrayListAligned(u8, @alignOf(u8) * 2), .{ .alignment = .at_least_natural });
+    try expectError(
+        std.ArrayListAligned(i32, @alignOf(i32) / 2),
+        .{ .alignment = .at_least_natural },
+        Error.AlignmentTooSmall,
+    );
 
-test "expect(.{ .allocator = true, .alignment = .natural })" {
-    const with = With{ .allocator = true, .alignment = .natural };
+    // when the `.alignment` is `.at_least`, the alignment mustt be the given alignment or more
+    try expect(std.ArrayList(i32), .{ .alignment = .{ .at_least = 1 } });
+    try expect(
+        std.ArrayListAligned(u8, @alignOf(u8) * 2),
+        .{ .alignment = .{ .at_least = @alignOf(u8) } },
+    );
 
-    // passing
-    try expect(std.ArrayList(u8), with);
-    try expect(std.ArrayList(struct {}), with);
+    try expectError(
+        std.ArrayListAligned(i32, 1),
+        .{ .alignment = .{ .at_least = 2 } },
+        Error.AlignmentTooSmall,
+    );
 
-    inline for (@typeInfo(Error).error_set.?) |error_info| {
-        const err: Error = @field(Error, error_info.name);
-        try expectError(switch (err) {
-            Error.NotAStruct => i32,
-            Error.IsTuple => struct { i32 },
-            Error.NoAllocator => std.ArrayListUnmanaged(u8),
-            Error.AllocatorNotAnAllocator => struct {
-                allocator: @TypeOf(.not_an_allocator),
-            },
-            Error.NoSlice => struct { allocator: std.mem.Allocator },
-            Error.SliceNotAType => struct {
-                allocator: std.mem.Allocator,
-                pub const Slice = "This is a string, not a type";
-            },
-            Error.SliceTypeNotAPointer => struct {
-                allocator: std.mem.Allocator,
-                pub const Slice = @TypeOf(.this_isnt_a_pointer);
-            },
-            Error.SliceTypeNotASlice => struct {
-                allocator: std.mem.Allocator,
-                pub const Slice = @TypeOf("This is a pointer, but not a slice");
-            },
-            Error.NotFromFunction => struct {
-                allocator: std.mem.Allocator,
-                pub const Slice = []u8;
-            },
-            Error.AlignmentNotExact => std.ArrayListAligned(u8, 2 * @alignOf(u8)),
-            // impossible to reach with `.allocator = true`
-            Error.HasAllocator,
-            // impossible to reach with `.item_type = null`
-            Error.ItemNotItem,
-            // impossible to reach with `.alignment = .natural`
-            Error.AlignmentTooSmall,
-            => continue,
-        }, with, err);
-    }
-}
+    try expectError(
+        std.ArrayListAligned(u8, 128),
+        .{ .alignment = .{ .at_least = 256 } },
+        Error.AlignmentTooSmall,
+    );
 
-test "expect(.{ .allocator = false, .alignment = .natural })" {
-    const with = With{ .allocator = false, .alignment = .natural };
+    // an `Error.NotAStruct` occurs when passing a non-struct type
+    try expectError(enum { not_a_struct }, .{}, Error.NotAStruct);
 
-    // passing
-    try expect(std.ArrayListUnmanaged(u8), with);
-    try expect(std.ArrayListUnmanaged(struct {}), with);
+    // an `Error.IsTuple` occurs when passing a tuple type
+    try expectError(struct { @TypeOf(.is_a_tuple) }, .{}, Error.IsTuple);
 
-    inline for (@typeInfo(Error).error_set.?) |error_info| {
-        const err: Error = @field(Error, error_info.name);
-        try expectError(switch (err) {
-            Error.NotAStruct => i32,
-            Error.IsTuple => struct { i32 },
-            Error.HasAllocator => std.ArrayList(u8),
-            Error.NoSlice => struct { is_struct: bool = true },
-            Error.SliceNotAType => struct {
-                is_struct: bool = true,
-                pub const Slice = "This is a string, not a type";
-            },
-            Error.SliceTypeNotAPointer => struct {
-                is_struct: bool = true,
-                pub const Slice = @TypeOf(.this_isnt_a_pointer);
-            },
-            Error.SliceTypeNotASlice => struct {
-                is_struct: bool = true,
-                pub const Slice = @TypeOf("This is a pointer, but not a slice");
-            },
-            Error.NotFromFunction => struct {
-                is_struct: bool = true,
-                pub const Slice = []u8;
-            },
-            Error.AlignmentNotExact => std.ArrayListAlignedUnmanaged(u8, 2 * @alignOf(u8)),
-            // impossible to reach with `.allocator = false`
-            Error.NoAllocator,
-            Error.AllocatorNotAnAllocator,
-            // impossible to reach with `.item_type = null`
-            Error.ItemNotItem,
-            // impossible to reach with `.alignment = .natural`
-            Error.AlignmentTooSmall,
-            => continue,
-        }, with, err);
-    }
-}
+    // an `Error.AllocatorNotAnAllocator` occurs when the `allocator` field of the struct type
+    // isn't an instance of `std.mem.Allocator`.
+    try expectError(struct {
+        allocator: @TypeOf(.not_an_allocator),
+        is_a_struct: bool = true,
+    }, .{}, Error.AllocatorNotAnAllocator);
 
-test "expect(.{ .allocator = true, .item_type = ..., .alignment = .natural })" {
-    const Item = enum {};
-    const with = With{
-        .allocator = true,
-        .item_type = Item,
-        .alignment = .natural,
+    // an `Error.NoSlice` occurs when the struct type doesn't have a `Slice` declaration
+    try expectError(struct {
+        allocator: std.mem.Allocator,
+    }, .{}, Error.NoSlice);
+
+    // an `Error.SliceNotAType` occurs when `Slice` declaration isn't a type
+    try expectError(struct {
+        allocator: std.mem.Allocator,
+
+        pub const Slice = .not_a_slice;
+    }, .{}, Error.SliceNotAType);
+
+    // an `Error.SliceNotAPointerType` occurs when the `Slice` declaration isn't a pointer type
+    try expectError(struct {
+        allocator: std.mem.Allocator,
+
+        pub const Slice = @TypeOf(.not_a_pointer);
+    }, .{}, Error.SliceNotAPointerType);
+
+    // an `Error.SliceNotASliceType` occurs when the `Slice` declaration isn't a slice type
+    try expectError(struct {
+        allocator: std.mem.Allocator,
+
+        pub const Slice = @TypeOf("not a slice");
+    }, .{}, Error.SliceNotASliceType);
+
+    // an `Error.NotFromFunction` occurs when even though all other condition was fullfilled,
+    // the given type doesn't come from `std.ArrayListAligned` or `std.ArrayListAlignedUnmanaged`
+    try expectError(struct {
+        allocator: std.mem.Allocator,
+
+        pub const Slice = []u8;
+    }, .{}, Error.NotFromFunction);
+
+    // we can even make a structural equivalent of an array list
+    const ArrayList = std.ArrayList(u8);
+    const NotArrayList = struct {
+        items: []u8,
+        capacity: usize,
+        allocator: std.mem.Allocator,
+
+        // this doesn't exactly make `NotArrayList` an actual structural equivalent of `ArrayList`,
+        // but it's for the demonstration
+        pub usingnamespace ArrayList;
     };
 
-    // passing
-    try expect(std.ArrayList(Item), with);
-
-    inline for (@typeInfo(Error).error_set.?) |error_info| {
-        const err: Error = @field(Error, error_info.name);
-        try expectError(switch (err) {
-            Error.NotAStruct => i32,
-            Error.IsTuple => struct { i32 },
-            Error.ItemNotItem => std.ArrayList(u8),
-            Error.NoAllocator => std.ArrayListUnmanaged(Item),
-            Error.AllocatorNotAnAllocator => struct {
-                allocator: @TypeOf(.not_an_allocator),
-            },
-            Error.NoSlice => struct { allocator: std.mem.Allocator },
-            Error.SliceNotAType => struct {
-                allocator: std.mem.Allocator,
-                pub const Slice = "This is a string, not a type";
-            },
-            Error.SliceTypeNotAPointer => struct {
-                allocator: std.mem.Allocator,
-                pub const Slice = @TypeOf(.this_isnt_a_pointer);
-            },
-            Error.SliceTypeNotASlice => struct {
-                allocator: std.mem.Allocator,
-                pub const Slice = @TypeOf("This is a pointer, but not a slice");
-            },
-            Error.NotFromFunction => struct {
-                allocator: std.mem.Allocator,
-                pub const Slice = []Item;
-            },
-            Error.AlignmentNotExact => std.ArrayListAligned(Item, 2 * @alignOf(Item)),
-            // impossible to reach with `.allocator = true`
-            Error.HasAllocator,
-            // impossible to reach with `.alignment = .natural`
-            Error.AlignmentTooSmall,
-            => continue,
-        }, with, err);
-    }
-}
-
-test "expect(.{ .allocator = false, .item_type = ..., .alignment = .natural })" {
-    const Item = struct {
-        pub const im = .a_namespace;
-    };
-
-    const with = With{ .allocator = false, .item_type = Item, .alignment = .natural };
-
-    // passing
-    try expect(std.ArrayListUnmanaged(Item), with);
-
-    inline for (@typeInfo(Error).error_set.?) |error_info| {
-        const err: Error = @field(Error, error_info.name);
-        try expectError(switch (err) {
-            Error.NotAStruct => i32,
-            Error.IsTuple => struct { i32 },
-            Error.ItemNotItem => std.ArrayListUnmanaged(u8),
-            Error.HasAllocator => std.ArrayList(Item),
-            Error.NoSlice => struct { is_struct: bool = true },
-            Error.SliceNotAType => struct {
-                is_struct: bool = true,
-                pub const Slice = "This is a string, not a type";
-            },
-            Error.SliceTypeNotAPointer => struct {
-                is_struct: bool = true,
-                pub const Slice = @TypeOf(.this_isnt_a_pointer);
-            },
-            Error.SliceTypeNotASlice => struct {
-                is_struct: bool = true,
-                pub const Slice = @TypeOf("This is a pointer, but not a slice");
-            },
-            Error.NotFromFunction => struct {
-                is_struct: bool = true,
-                pub const Slice = []Item;
-            },
-            Error.AlignmentNotExact => std.ArrayListAlignedUnmanaged(Item, 2 * @alignOf(Item)),
-            // impossible to reach with `.allocator = false`
-            Error.NoAllocator,
-            Error.AllocatorNotAnAllocator,
-            // impossible to reach with `.alignment = .natural`
-            Error.AlignmentTooSmall,
-            => continue,
-        }, with, err);
-    }
-}
-
-test "expect(.{ .allocator = true, .alignment = .at_least_natural })" {
-    const with = With{ .allocator = true, .alignment = .at_least_natural };
-
-    // passing
-    try expect(std.ArrayList(u8), with);
-    try expect(std.ArrayList(struct {}), with);
-    try expect(std.ArrayListAligned(u37, @alignOf(u37) * 2), with);
-
-    inline for (@typeInfo(Error).error_set.?) |error_info| {
-        const err: Error = @field(Error, error_info.name);
-        try expectError(switch (err) {
-            Error.NotAStruct => i32,
-            Error.IsTuple => struct { i32 },
-            Error.NoAllocator => std.ArrayListUnmanaged(u8),
-            Error.AllocatorNotAnAllocator => struct {
-                allocator: @TypeOf(.not_an_allocator),
-            },
-            Error.NoSlice => struct { allocator: std.mem.Allocator },
-            Error.SliceNotAType => struct {
-                allocator: std.mem.Allocator,
-                pub const Slice = "This is a string, not a type";
-            },
-            Error.SliceTypeNotAPointer => struct {
-                allocator: std.mem.Allocator,
-                pub const Slice = @TypeOf(.this_isnt_a_pointer);
-            },
-            Error.SliceTypeNotASlice => struct {
-                allocator: std.mem.Allocator,
-                pub const Slice = @TypeOf("This is a pointer, but not a slice");
-            },
-            Error.NotFromFunction => struct {
-                allocator: std.mem.Allocator,
-                pub const Slice = []u8;
-            },
-            Error.AlignmentTooSmall => std.ArrayListAligned(u32, @alignOf(u32) / 2),
-            // impossible to reach with `.alignment = .at_least_natural`
-            Error.AlignmentNotExact,
-            // impossible to reach with `.allocator = true`
-            Error.HasAllocator,
-            // impossible to reach with `.item_type = null`
-            Error.ItemNotItem,
-            => continue,
-        }, with, err);
-    }
-}
-
-test "expect(.{ .allocator = false, .alignment = .at_least_natural })" {
-    const with = With{ .allocator = false, .alignment = .at_least_natural };
-
-    // passing
-    try expect(std.ArrayListUnmanaged(struct {}), with);
-    try expect(std.ArrayListAlignedUnmanaged(*const u8, @alignOf(*const u8) * 2), with);
-
-    inline for (@typeInfo(Error).error_set.?) |error_info| {
-        const err: Error = @field(Error, error_info.name);
-        try expectError(switch (err) {
-            Error.NotAStruct => i32,
-            Error.IsTuple => struct { i32 },
-            Error.HasAllocator => std.ArrayList(u8),
-            Error.NoSlice => struct { is_struct: bool = true },
-            Error.SliceNotAType => struct {
-                is_struct: bool = true,
-                pub const Slice = "This is a string, not a type";
-            },
-            Error.SliceTypeNotAPointer => struct {
-                is_struct: bool = true,
-                pub const Slice = @TypeOf(.this_isnt_a_pointer);
-            },
-            Error.SliceTypeNotASlice => struct {
-                is_struct: bool = true,
-                pub const Slice = @TypeOf("This is a pointer, but not a slice");
-            },
-            Error.NotFromFunction => struct {
-                is_struct: bool = true,
-                pub const Slice = []u8;
-            },
-            Error.AlignmentTooSmall => std.ArrayListAlignedUnmanaged([]u16, @alignOf([]u16) / 2),
-            // impossible to reach with `.allocator = false`
-            Error.NoAllocator,
-            Error.AllocatorNotAnAllocator,
-            // impossible to reach with `.item_type = null`
-            Error.ItemNotItem,
-            // impossible to reach with `.alignment = .natural`
-            Error.AlignmentNotExact,
-            => continue,
-        }, with, err);
-    }
-}
-
-test "expect(.{ .allocator = true, .item_type = ..., .alignment = .at_least_natural })" {
-    const Item = struct { [*:0]u8, bool };
-    const with = With{ .allocator = true, .item_type = Item, .alignment = .at_least_natural };
-
-    // passing
-    try expect(std.ArrayList(Item), with);
-    try expect(std.ArrayListAligned(Item, @alignOf(Item) * 2), with);
-
-    inline for (@typeInfo(Error).error_set.?) |error_info| {
-        const err: Error = @field(Error, error_info.name);
-        try expectError(switch (err) {
-            Error.NotAStruct => i32,
-            Error.IsTuple => struct { i32 },
-            Error.NoAllocator => std.ArrayListUnmanaged(u8),
-            Error.AllocatorNotAnAllocator => struct {
-                allocator: @TypeOf(.not_an_allocator),
-            },
-            Error.NoSlice => struct { allocator: std.mem.Allocator },
-            Error.SliceNotAType => struct {
-                allocator: std.mem.Allocator,
-                pub const Slice = "This is a string, not a type";
-            },
-            Error.SliceTypeNotAPointer => struct {
-                allocator: std.mem.Allocator,
-                pub const Slice = @TypeOf(.this_isnt_a_pointer);
-            },
-            Error.SliceTypeNotASlice => struct {
-                allocator: std.mem.Allocator,
-                pub const Slice = @TypeOf("This is a pointer, but not a slice");
-            },
-            Error.NotFromFunction => struct {
-                allocator: std.mem.Allocator,
-                pub const Slice = []Item;
-            },
-            Error.AlignmentTooSmall => std.ArrayListAligned(Item, @alignOf(Item) / 2),
-            // impossible to reach with `.alignment = .at_least_natural`
-            Error.AlignmentNotExact,
-            // impossible to reach with `.allocator = true`
-            Error.HasAllocator,
-            // impossible to reach with `.item_type = null`
-            Error.ItemNotItem,
-            => continue,
-        }, with, err);
-    }
-}
-
-test "expect(.{ .allocator = false, .item_type = ..., .alignment = .at_least_natural })" {
-    const Item = struct { field1: u10, field2: i20 };
-    const with = With{ .allocator = false, .item_type = Item, .alignment = .at_least_natural };
-
-    // passing
-    try expect(std.ArrayListUnmanaged(Item), with);
-    try expect(std.ArrayListAlignedUnmanaged(Item, @alignOf(Item) * 2), with);
-
-    inline for (@typeInfo(Error).error_set.?) |error_info| {
-        const err: Error = @field(Error, error_info.name);
-        try expectError(switch (err) {
-            Error.NotAStruct => i32,
-            Error.IsTuple => struct { i32 },
-            Error.ItemNotItem => std.ArrayListUnmanaged(u8),
-            Error.HasAllocator => std.ArrayList(Item),
-            Error.NoSlice => struct { is_struct: bool = true },
-            Error.SliceNotAType => struct {
-                is_struct: bool = true,
-                pub const Slice = "This is a string, not a type";
-            },
-            Error.SliceTypeNotAPointer => struct {
-                is_struct: bool = true,
-                pub const Slice = @TypeOf(.this_isnt_a_pointer);
-            },
-            Error.SliceTypeNotASlice => struct {
-                is_struct: bool = true,
-                pub const Slice = @TypeOf("This is a pointer, but not a slice");
-            },
-            Error.NotFromFunction => struct {
-                is_struct: bool = true,
-                pub const Slice = []Item;
-            },
-            Error.AlignmentTooSmall => std.ArrayListAlignedUnmanaged(Item, @alignOf(Item) / 2),
-            // impossible to reach with `.allocator = false`
-            Error.NoAllocator,
-            Error.AllocatorNotAnAllocator,
-            // impossible to reach with `.alignment = .natural`
-            Error.AlignmentNotExact,
-            => continue,
-        }, with, err);
-    }
-}
-
-test "expect(.{ .allocator = true, .alignment = .{ .exact = ... } })" {
-    const ItemWithRightAlignment = u32;
-    const alignment = @alignOf(ItemWithRightAlignment);
-    const with = With{ .allocator = true, .alignment = .{ .exact = alignment } };
-
-    // passing
-    try expect(std.ArrayListAligned(u8, alignment), with);
-    try expect(std.ArrayList(ItemWithRightAlignment), with);
-
-    inline for (@typeInfo(Error).error_set.?) |error_info| {
-        const err: Error = @field(Error, error_info.name);
-        try expectError(switch (err) {
-            Error.NotAStruct => i32,
-            Error.IsTuple => struct { i32 },
-            Error.NoAllocator => std.ArrayListUnmanaged(u8),
-            Error.AllocatorNotAnAllocator => struct {
-                allocator: @TypeOf(.not_an_allocator),
-            },
-            Error.NoSlice => struct { allocator: std.mem.Allocator },
-            Error.SliceNotAType => struct {
-                allocator: std.mem.Allocator,
-                pub const Slice = "This is a string, not a type";
-            },
-            Error.SliceTypeNotAPointer => struct {
-                allocator: std.mem.Allocator,
-                pub const Slice = @TypeOf(.this_isnt_a_pointer);
-            },
-            Error.SliceTypeNotASlice => struct {
-                allocator: std.mem.Allocator,
-                pub const Slice = @TypeOf("This is a pointer, but not a slice");
-            },
-            Error.NotFromFunction => struct {
-                allocator: std.mem.Allocator,
-                pub const Slice = []align(alignment) u8;
-            },
-            Error.AlignmentNotExact => std.ArrayListAligned(ItemWithRightAlignment, alignment / 2),
-            // impossible to reach with `.allocator = true`
-            Error.HasAllocator,
-            // impossible to reach with `.item_type = null`
-            Error.ItemNotItem,
-            // impossible to reach with `.alignment = .natural`
-            Error.AlignmentTooSmall,
-            => continue,
-        }, with, err);
-    }
-}
-
-test "expect(.{ .allocator = false, .alignment = .{ .exact = ... } })" {
-    const ItemWithRightAlignment = f64;
-    const alignment = @alignOf(ItemWithRightAlignment);
-    const with = With{ .allocator = false, .alignment = .{ .exact = alignment } };
-
-    // passing
-    try expect(std.ArrayListUnmanaged(ItemWithRightAlignment), with);
-    try expect(std.ArrayListAlignedUnmanaged(struct {}, alignment), with);
-
-    inline for (@typeInfo(Error).error_set.?) |error_info| {
-        const err: Error = @field(Error, error_info.name);
-        try expectError(switch (err) {
-            Error.NotAStruct => i32,
-            Error.IsTuple => struct { i32 },
-            Error.HasAllocator => std.ArrayList(u8),
-            Error.NoSlice => struct { is_struct: bool = true },
-            Error.SliceNotAType => struct {
-                is_struct: bool = true,
-                pub const Slice = "This is a string, not a type";
-            },
-            Error.SliceTypeNotAPointer => struct {
-                is_struct: bool = true,
-                pub const Slice = @TypeOf(.this_isnt_a_pointer);
-            },
-            Error.SliceTypeNotASlice => struct {
-                is_struct: bool = true,
-                pub const Slice = @TypeOf("This is a pointer, but not a slice");
-            },
-            Error.NotFromFunction => struct {
-                is_struct: bool = true,
-                pub const Slice = []ItemWithRightAlignment;
-            },
-            Error.AlignmentNotExact => std.ArrayListAlignedUnmanaged(
-                ItemWithRightAlignment,
-                2 * alignment,
-            ),
-            // impossible to reach with `.allocator = false`
-            Error.NoAllocator,
-            Error.AllocatorNotAnAllocator,
-            // impossible to reach with `.item_type = null`
-            Error.ItemNotItem,
-            // impossible to reach with `.alignment = .natural`
-            Error.AlignmentTooSmall,
-            => continue,
-        }, with, err);
-    }
-}
-
-test "expect(.{ .allocator = true, .item_type = ..., .alignment = .{ .exact = ... } })" {
-    // TODO
-}
-
-test "expect(.{ .allocator = false, .item_type = ..., .alignment = .{ .exact = ... } })" {
-    // TODO
-}
-
-test "expect(.{ .allocator = true, .alignment = .{ .at_least = ... } })" {
-    // TODO
-}
-
-test "expect(.{ .allocator = false, .alignment = .{ .at_least = ... } })" {
-    // TODO
-}
-
-test "expect(.{ .allocator = true, .item_type = ..., .alignment = .{ .at_least = ... } })" {
-    // TODO
-}
-
-test "expect(.{ .allocator = false, .item_type = ..., .alignment = .{ .at_least = ... } })" {
-    // TODO
+    try expect(ArrayList, .{});
+    try expectError(NotArrayList, .{}, Error.NotFromFunction);
 }

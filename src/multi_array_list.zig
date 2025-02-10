@@ -23,7 +23,7 @@
 const std = @import("std");
 
 pub const With = struct {
-    item_type: ?type = null,
+    Item: ?type = null,
 };
 
 pub const Error = error{
@@ -94,7 +94,7 @@ pub inline fn expect(comptime T: type, comptime with: With) Error!void {
             else => return Error.UnsupportedItem,
         }
 
-        if (with.item_type) |item_type| if (item_type != get_info.@"fn".return_type.?)
+        if (with.Item) |item_type| if (item_type != get_info.@"fn".return_type.?)
             return Error.ItemNotItem;
 
         if (T != std.MultiArrayList(Item))
@@ -110,7 +110,7 @@ pub inline fn logError(comptime e: Error, comptime T: type, comptime with: With)
     comptime {
         const fmt = std.fmt.comptimePrint;
         return fmt("The type `{s}` isn't a `std.MultiArrayList({s})` because {s}!", .{
-            @typeName(T), if (with.item_type) |Item| @typeName(Item) else "...", switch (e) {
+            @typeName(T), if (with.Item) |Item| @typeName(Item) else "...", switch (e) {
                 Error.IsTuple => "it's a tuple",
                 Error.ItemNotItem => fmt(
                     "its items are `{s}`",
@@ -161,17 +161,11 @@ pub inline fn Reify(comptime T: type, comptime with: With) type {
 pub inline fn reify(
     multi_array_list: anytype,
     comptime with: With,
-) Reify(@TypeOf(multi_array_list), with) {
+) *const Reify(@TypeOf(multi_array_list.*), with) {
     return multi_array_list;
 }
 
-pub inline fn reifyPtr(
-    multi_array_list_ptr: anytype,
-    comptime with: With,
-) *const Reify(@TypeOf(multi_array_list_ptr.*), with) {
-    return multi_array_list_ptr;
-}
-pub inline fn reifyVarPtr(
+pub inline fn reifyVar(
     multi_array_list_ptr: anytype,
     comptime with: With,
 ) *Reify(@TypeOf(multi_array_list_ptr.*), with) {
@@ -189,8 +183,8 @@ test expect {
 
     // if a `with.Item` is given, it can reach a `Error.ItemNotItem`
     const Item = struct { field: bool };
-    try expect(std.MultiArrayList(Item), .{ .item_type = Item });
-    try expectError(std.MultiArrayList(struct {}), .{ .item_type = Item }, Error.ItemNotItem);
+    try expect(std.MultiArrayList(Item), .{ .Item = Item });
+    try expectError(std.MultiArrayList(struct {}), .{ .Item = Item }, Error.ItemNotItem);
 
     // an `Error.NotAStruct` occurs when passing a non-struct type
     try expectError(enum { not_a_struct }, .{}, Error.NotAStruct);
