@@ -33,8 +33,8 @@ pub const Error = error{
     NoSlice,
     /// The `Slice` declaration isn't a `type`.
     SliceNotAType,
-    SliceTypeNotAStruct,
-    SliceTypeIsTuple,
+    SliceNotAStructType,
+    SliceIsTupleType,
     /// There's no `get` declaration in the `Slice` declaration
     SliceNoGet,
     /// The `Slice.get` declaration isn't a function
@@ -69,10 +69,10 @@ pub inline fn expect(comptime T: type, comptime with: With) Error!void {
         const slice_info = @typeInfo(T.Slice);
 
         if (slice_info != .@"struct")
-            return Error.SliceTypeNotAStruct;
+            return Error.SliceNotAStructType;
 
         if (slice_info.@"struct".is_tuple)
-            return Error.SliceTypeIsTuple;
+            return Error.SliceIsTupleType;
 
         if (!@hasDecl(T.Slice, "get"))
             return Error.SliceNoGet;
@@ -129,7 +129,7 @@ pub inline fn logError(comptime e: Error, comptime T: type, comptime with: With)
                     "its `Slice` declaration isn't a type but a `.{s}` insead",
                     .{@typeName(@TypeOf(T.Slice))},
                 ),
-                Error.SliceTypeIsTuple => "the `Slice` declaration is the type of a tuple",
+                Error.SliceIsTupleType => "the `Slice` declaration is the type of a tuple",
                 Error.SliceTypeNotAStruct => fmt(
                     "the `Slice` declaration isn't the type of a `struct` but a `.{s}` instead",
                     .{@tagName(@typeInfo(T.Slice))},
@@ -182,123 +182,182 @@ fn expectError(comptime T: type, comptime with: With, comptime err: Error) !void
     try std.testing.expectError(err, expect(T, with));
 }
 
-test "expect(.{ .item_type = null })" {
-    const with = With{ .item_type = null };
+test expect {
+    // anything that's passed to `std.MultiArrayList` will work
+    try expect(std.MultiArrayList(union(enum) {}), .{});
+    try expect(std.MultiArrayList(struct {}), .{});
 
-    try expect(std.MultiArrayList(union(enum) { lol, lmao }), with);
+    // if a `with.Item` is given, it can reach a `Error.ItemNotItem`
+    const Item = struct { field: bool };
+    try expect(std.MultiArrayList(Item), .{ .item_type = Item });
+    try expectError(std.MultiArrayList(struct {}), .{ .item_type = Item }, Error.ItemNotItem);
 
-    inline for (@typeInfo(Error).error_set.?) |error_info| {
-        const err: Error = @field(Error, error_info.name);
-        try expectError(switch (err) {
-            Error.NotAStruct => enum {},
-            Error.IsTuple => struct { []const u8, bool },
-            Error.NoSlice => struct { field: bool },
-            Error.SliceNotAType => struct {
-                pub const Slice = "Not a type";
-            },
-            Error.SliceTypeNotAStruct => struct {
-                pub const Slice = @TypeOf("Not a struct");
-            },
-            Error.SliceTypeIsTuple => struct {
-                pub const Slice = struct { @TypeOf("a tuple!") };
-            },
-            Error.SliceNoGet => struct {
-                pub const Slice = struct {
-                    pub const no = .get;
-                };
-            },
-            Error.SliceGetNotAFunction => struct {
-                pub const Slice = struct {
-                    pub const get = .not_a_function;
-                };
-            },
-            Error.SliceGetNoReturnType => struct {
-                pub const Slice = struct {
-                    pub fn get(comptime T: type) T {
-                        return undefined;
-                    }
-                };
-            },
-            Error.UnsupportedItem => struct {
-                pub const Slice = struct {
-                    pub fn get() u8 {
-                        return 0;
-                    }
-                };
-            },
-            Error.NotFromFunction => struct {
-                pub const Slice = struct {
-                    pub fn get() struct { u8 } {
-                        return .{0};
-                    }
-                };
-            },
-            // impossible to reach with `.item_type = null`
-            Error.ItemNotItem => continue,
-        }, with, err);
-    }
-}
+    // an `Error.NotAStruct` occurs when passing a non-struct type
+    try expectError(enum { not_a_struct }, .{}, Error.NotAStruct);
 
-test "expect(.{ .item_type = ... })" {
-    const Item = struct { field_1: usize, field_2: []const u8 };
-    const NotItem = struct { field_1: usize, field_2: []const u8 };
-    const with = With{ .item_type = Item };
+    // an `Error.IsTuple` occurs when passing a tuple type
+    try expectError(struct { @TypeOf(.is_a_tuple) }, .{}, Error.IsTuple);
 
-    try expect(std.MultiArrayList(Item), with);
+    // an `Error.NoSlice` occurs when the passed struct type doesn't have a `Slice` declaration
+    try expectError(struct {
+        is_a_struct: bool = true,
+        has_a_slice_declaration: bool = false,
+    }, .{}, Error.NoSlice);
 
-    inline for (@typeInfo(Error).error_set.?) |error_info| {
-        const err: Error = @field(Error, error_info.name);
-        try expectError(switch (err) {
-            Error.NotAStruct => enum {},
-            Error.IsTuple => struct { []const u8, bool },
-            Error.NoSlice => struct { field: bool },
-            Error.SliceNotAType => struct {
-                pub const Slice = "Not a type";
-            },
-            Error.SliceTypeNotAStruct => struct {
-                pub const Slice = @TypeOf("Not a struct");
-            },
-            Error.SliceTypeIsTuple => struct {
-                pub const Slice = struct { @TypeOf("a tuple!") };
-            },
-            Error.SliceNoGet => struct {
-                pub const Slice = struct {
-                    pub const no = .get;
-                };
-            },
-            Error.SliceGetNotAFunction => struct {
-                pub const Slice = struct {
-                    pub const get = .not_a_function;
-                };
-            },
-            Error.SliceGetNoReturnType => struct {
-                pub const Slice = struct {
-                    pub fn get(comptime T: type) T {
-                        return undefined;
-                    }
-                };
-            },
-            Error.UnsupportedItem => struct {
-                pub const Slice = struct {
-                    pub fn get() u8 {
-                        return 0;
-                    }
-                };
-            },
-            Error.ItemNotItem => struct {
-                pub const Slice = struct {
-                    pub fn get() NotItem {
-                        return undefined;
-                    }
-                };
-            },
-            Error.NotFromFunction => struct {
-                pub const Slice = struct {
-                    pub fn get() Item {
-                        return undefined;
-                    }
-                };
-            },
-        }, with, err);
-    }
+    // an `Error.SliceNotAType` occurs when the `Slice` declaration of the passed struct type isn't
+    // a type
+    try expectError(struct {
+        is_a_struct: bool = true,
+        has_a_slice_declaration: bool = true,
+        slice_is_a_type: bool = false,
+
+        pub const Slice = .is_not_a_type;
+    }, .{}, Error.SliceNotAType);
+
+    // an `Error.SliceNotAStructType` occurs when the `Slice` declaration of the passed struct type
+    // isn't a struct type itself
+    try expectError(struct {
+        is_a_struct: bool = true,
+        has_a_slice_declaration: bool = true,
+        slice_is_a_type: bool = true,
+        slice_is_a_struct_type: bool = false,
+
+        pub const Slice = @TypeOf(.not_a_struct);
+    }, .{}, Error.SliceNotAStructType);
+
+    // an `Error.SliceIsTupleType` occurs when the `Slice` declaration of the passed struct type is
+    // a tuple type
+    try expectError(struct {
+        is_a_struct: bool = true,
+        has_a_slice_declaration: bool = true,
+        slice_is_a_type: bool = true,
+        slice_is_a_struct_type: bool = true,
+        slice_isnt_a_tuple_type: bool = false,
+
+        pub const Slice = struct { @TypeOf("field of a tuple") };
+    }, .{}, Error.SliceIsTupleType);
+
+    // an `Error.SliceNoGet` occurs when the `Slice` declaration of the passed struct type has no
+    // `get` declaration
+    try expectError(struct {
+        is_a_struct: bool = true,
+        has_a_slice_declaration: bool = true,
+        slice_is_a_type: bool = true,
+        slice_is_a_struct_type: bool = true,
+        slice_isnt_a_tuple_type: bool = true,
+        slice_has_a_get_declaration: bool = false,
+
+        pub const Slice = struct {
+            pub const not_get = "declaration";
+        };
+    }, .{}, Error.SliceNoGet);
+
+    // an `Error.SliceGetNotAFunction` occurs when the `Slice.get` declaration of the passed struct
+    // type isn't a function
+    try expectError(struct {
+        is_a_struct: bool = true,
+        has_a_slice_declaration: bool = true,
+        slice_is_a_type: bool = true,
+        slice_is_a_struct_type: bool = true,
+        slice_isnt_a_tuple_type: bool = true,
+        slice_has_a_get_declaration: bool = true,
+        slice_get_isnt_a_function: bool = false,
+
+        pub const Slice = struct {
+            pub const get = .not_a_function;
+        };
+    }, .{}, Error.SliceGetNotAFunction);
+
+    // an `Error.SliceGetNoReturnType` occurs when the `Slice.get` function of the passed struct
+    // type doesn't have a return type
+    try expectError(struct {
+        is_a_struct: bool = true,
+        has_a_slice_declaration: bool = true,
+        slice_is_a_type: bool = true,
+        slice_is_a_struct_type: bool = true,
+        slice_isnt_a_tuple_type: bool = true,
+        slice_has_a_get_declaration: bool = true,
+        slice_get_isnt_a_function: bool = true,
+        slice_get_has_a_return_type: bool = false,
+
+        pub const Slice = struct {
+            pub fn get(comptime T: type) T {
+                return undefined;
+            }
+        };
+    }, .{}, Error.SliceGetNoReturnType);
+
+    // an `Error.SliceGetNoReturnType` occurs when the `Slice.get` function of the passed struct
+    // type doesn't have a return type
+    try expectError(struct {
+        is_a_struct: bool = true,
+        has_a_slice_declaration: bool = true,
+        slice_is_a_type: bool = true,
+        slice_is_a_struct_type: bool = true,
+        slice_isnt_a_tuple_type: bool = true,
+        slice_has_a_get_declaration: bool = true,
+        slice_get_isnt_a_function: bool = true,
+        slice_get_has_a_return_type: bool = true,
+
+        pub const Slice = struct {
+            pub fn get(comptime T: type) T {
+                return undefined;
+            }
+        };
+    }, .{}, Error.SliceGetNoReturnType);
+
+    // an `Error.UnsupportedItem` occurs when the `Slice.get` return type isn't supported by the
+    // `std.MultiArrayList` interface
+    try expectError(struct {
+        is_a_struct: bool = true,
+        has_a_slice_declaration: bool = true,
+        slice_is_a_type: bool = true,
+        slice_is_a_struct_type: bool = true,
+        slice_isnt_a_tuple_type: bool = true,
+        slice_has_a_get_declaration: bool = true,
+        slice_get_isnt_a_function: bool = true,
+        slice_get_has_a_return_type: bool = true,
+        silce_get_return_type_is_supported: bool = false,
+
+        pub const Slice = struct {
+            pub fn get() union { untagged: void } {
+                return undefined;
+            }
+        };
+    }, .{}, Error.UnsupportedItem);
+
+    // an `Error.NotFromFunction` occurs when even though all other condition was fullfilled,
+    // the given type doesn't come from `std.MultiArrayList`
+    try expectError(struct {
+        is_a_struct: bool = true,
+        has_a_slice_declaration: bool = true,
+        slice_is_a_type: bool = true,
+        slice_is_a_struct_type: bool = true,
+        slice_isnt_a_tuple_type: bool = true,
+        slice_has_a_get_declaration: bool = true,
+        slice_get_isnt_a_function: bool = true,
+        slice_get_has_a_return_type: bool = true,
+        silce_get_return_type_is_supported: bool = true,
+
+        pub const Slice = struct {
+            pub fn get() union(enum) { tagged: void } {
+                return undefined;
+            }
+        };
+    }, .{}, Error.NotFromFunction);
+
+    // we can even make a structural equivalent of a multi-array list
+    const MultiArrayList = std.MultiArrayList(Item);
+    const NotMultiArrayList = struct {
+        bytes: [*]align(@alignOf(Item)) u8 = undefined,
+        len: usize = 0,
+        capacity: usize = 0,
+
+        // this doesn't exactly make `NotMultiArrayList` an actual structural equivalent of
+        // `MultiArrayList`, but it's for the demonstration
+        pub usingnamespace MultiArrayList;
+    };
+
+    try expect(MultiArrayList, .{});
+    try expectError(NotMultiArrayList, .{}, Error.NotFromFunction);
 }
