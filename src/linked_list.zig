@@ -97,3 +97,74 @@ pub inline fn expect(comptime T: type, comptime with: With) Error!void {
             return from_function;
     }
 }
+
+pub inline fn assert(comptime T: type, comptime with: With) void {
+    expect(T, with) catch |e| @compileError(logError(e, T, with));
+}
+
+pub inline fn logError(comptime e: Error, comptime T: type, comptime with: With) []const u8 {
+    comptime {
+        const fmt = std.fmt.comptimePrint;
+        const isnt_linked_list = fmt("The type `{s}` isn't a `std.{s}List({s})` because {{s}}!", .{
+            @typeName(T),
+            switch (with.linkage) {
+                .double => "Doubly",
+                .single => "Singly",
+            },
+            if (with.Item) |Item| @typeName(Item) else "...",
+        });
+
+        const reason = switch (e) {
+            Error.IsTuple => "it's a tuple type",
+            Error.ItemNotItem => fmt("its items are `{s}`", .{@FieldType(T.Node, "data")}),
+            Error.NodeHasPrev => "its `Node` declaration has a `prev` field, " ++
+                " so it might be doubly linked instead",
+            Error.NodeIsTupleType => "its `Node` declaration is a tuple type",
+            Error.NodeNoData => "its `Node` declaration has no `data` field",
+            Error.NodeNoPrev => "its `Node` declaraion has no `prev` field, " ++
+                " so it might be singly linked instead",
+            Error.NodeNotAStructType => "its `Node` declaraion is not a struct type",
+            Error.NodeNotAType => "its `Node` declaration is not a type",
+            Error.NoNode => "it has no `Node` declaraion",
+            Error.NotAStruct => "it's not a struct type",
+            Error.NotFromFunction => fmt(
+                "it's not the result of the `std.{s}LinkedList` function",
+                .{switch (with.linkage) {
+                    .double => "Doubly",
+                    .single => "Singly",
+                }},
+            ),
+        };
+
+        return fmt(isnt_linked_list, .{reason});
+    }
+}
+
+pub inline fn Reify(comptime T: type, comptime with: With) type {
+    assert(T, with);
+    const Item = @Fieldtype(T.Node, "data");
+    return switch (with.linkage) {
+        .double => std.DoublyLinkedList(Item),
+        .single => std.SinglyLinkedList(Item),
+    };
+}
+
+pub inline fn reify(
+    array_list: anytype,
+    comptime with: With,
+) *const Reify(@TypeOf(array_list.*), with) {
+    return array_list;
+}
+
+pub inline fn reifyVar(
+    array_list: anytype,
+    comptime with: With,
+) *Reify(@TypeOf(array_list.*), with) {
+    return array_list;
+}
+
+fn expectError(comptime T: type, comptime with: With, comptime err: Error) !void {
+    try std.testing.expectError(err, expect(T, with));
+}
+
+test expect {}
