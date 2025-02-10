@@ -203,6 +203,13 @@ pub inline fn reify(array_list: anytype, comptime with: With) Reify(@TypeOf(arra
     return array_list;
 }
 
+pub inline fn reifyPtr(
+    array_list_ptr: anytype,
+    comptime with: With,
+) *Reify(@TypeOf(array_list_ptr.*), with) {
+    return array_list_ptr;
+}
+
 fn expectError(comptime T: type, comptime with: With, comptime err: Error) !void {
     try std.testing.expectError(err, expect(T, with));
 }

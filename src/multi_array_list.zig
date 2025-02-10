@@ -165,6 +165,13 @@ pub inline fn reify(
     return multi_array_list;
 }
 
+pub inline fn reifyPtr(
+    multi_array_list_ptr: anytype,
+    comptime with: With,
+) *Reify(@TypeOf(multi_array_list_ptr.*), with) {
+    return multi_array_list_ptr;
+}
+
 fn expectError(comptime T: type, comptime with: With, comptime err: Error) !void {
     try std.testing.expectError(err, expect(T, with));
 }
