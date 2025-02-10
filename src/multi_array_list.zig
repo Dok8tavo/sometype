@@ -117,7 +117,7 @@ pub inline fn logError(comptime e: Error, comptime T: type, comptime with: With)
                     .{@typeName(@typeInfo(T.Slice.get).@"fn".return_type.?)},
                 ),
                 Error.NoSlice => "it has no `Slice` declaration",
-                Error.NotASruct => "it's not a `struct`",
+                Error.NotAStruct => "it's not a `struct`",
                 Error.NotFromFunction => "it's not a result of the right function",
                 Error.SliceGetNoReturnType => "the `Slice.get` function has no clear return type",
                 Error.SliceGetNotAFunction => fmt(
