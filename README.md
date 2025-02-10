@@ -24,15 +24,14 @@ Full test coverage requires testing all possible combinations of sum-type parame
 | [`std.ArrayList` and similar](https://ziglang.org/documentation/master/std/#std.array_list)                                  | ✅              |
 | [`std.ArrayHashMap` and similar](https://ziglang.org/documentation/master/std/#std.array_hash_map.ArrayHashMapWithAllocator) | 🚫             |
 | [`std.BoundedArray` and similar](https://ziglang.org/documentation/master/std/#std.bounded_array)                            | 🚫             |
-| [`std.BufMap`](https://ziglang.org/documentation/master/std/#std.buf_map.BufMap)                                             | 🚫             |
 | [`std.BufSet`](https://ziglang.org/documentation/master/std/#std.buf_set.BufSet)                                             | 🚫             |
 | [`std.StaticStringMap`](https://ziglang.org/documentation/master/std/#std.static_string_map.StaticStringMap)                 | 🚫             |
 | [`std.StaticStringMapWithEql`](https://ziglang.org/documentation/master/std/#std.static_string_map.StaticStringMapWithEql)   | ❗[^1]          |
-| [`std.linked_list` doubly and singly](https://ziglang.org/documentation/master/std/#std.linked_list)                         | 🚧             |
+| [`std.linked_list` doubly and singly](https://ziglang.org/documentation/master/std/#std.linked_list)                         | ✅              |
 | [`std.EnumArray`](https://ziglang.org/documentation/master/std/#std.enums.EnumArray)                                         | 🚫             |
 | [`std.EnumMap`](https://ziglang.org/documentation/master/std/#std.enums.EnumMap)                                             | 🚫             |
 | [`std.EnumSet`](https://ziglang.org/documentation/master/std/#std.enums.EnumSet)                                             | 🚫             |
-| [`std.HashMap` and similar](https://ziglang.org/documentation/master/std/#std.hash_map.HashMap)                              | 🚫             |
+| [`std.HashMap` and similar](https://ziglang.org/documentation/master/std/#std.hash_map.HashMap)                              | 🚧             |
 | [`std.MultiArrayList`](https://ziglang.org/documentation/master/std/#std.multi_array_list.MultiArrayList)                    | ✅              |
 | [`std.PriorityQueue`](https://ziglang.org/documentation/master/std/#std.priority_queue.PriorityQueue)                        | ❗[^2]          |
 | [`std.PriorityDeQueue`](https://ziglang.org/documentation/master/std/#std.priority_dequeue.PriorityDequeue)                  | ❗[^2]          |
