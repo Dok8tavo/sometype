@@ -103,31 +103,31 @@ Full test coverage requires testing all possible combinations of sum-type parame
 
 ## Zig 0.14-dev
 
-| Interface                            | Implementation | Testing |
-|--------------------------------------|----------------|---------|
-| `std.ArrayList` and similar          | ✅              | 🚧      |
-| `std.ArrayHashMap` and similar       | 🚫             | 🚫      |
-| `std.BoundedArray` and similar       | 🚫             | 🚫      |
-| `std.BufMap`                         | 🚫             | 🚫      |
-| `std.BufSet`                         | 🚫             | 🚫      |
-| `std.StaticStringMap`                | 🚫             | 🚫      |
-| `std.StaticStringMapWithEql`         | ❗[^1]          |         |
-| `std.DoublyLinkedList`               | 🚫             | 🚫      |
-| `std.EnumArray`                      | 🚫             | 🚫      |
-| `std.EnumMap`                        | 🚫             | 🚫      |
-| `std.EnumSet`                        | 🚫             | 🚫      |
-| `std.HashMap` and similar            | 🚫             | 🚫      |
-| `std.MultiArrayList`                 | ✅              | ✅       |
-| `std.PriorityQueue`                  | ❗[^2]          |         |
-| `std.PriorityDeQueue`                | ❗[^2]          |         |
-| `std.SegmentedList`                  | 🚫             | 🚫      |
-| `std.SinglyLinkedList`               | 🚫             | 🚫      |
-| `std.StaticBitSet` and similar       | 🚫             | 🚫      |
-| `std.StringHashMap` and similar      | 🚫             | 🚫      |
-| `std.StringArrayHashMap` and similar | 🚫             | 🚫      |
-| `std.Treap`                          | ❗[^3]          |         |
-| `std.io.GenericReader`               | ❗[^4]          |         |
-| `std.io.GenericWriter`               | ❗[^5]          |         |
+| Interface                                                                                                                    | Implementation | Testing |
+|------------------------------------------------------------------------------------------------------------------------------|----------------|---------|
+| [`std.ArrayList` and similar](https://ziglang.org/documentation/master/std/#std.array_list)                                  | ✅              | 🚧      |
+| [`std.ArrayHashMap` and similar](https://ziglang.org/documentation/master/std/#std.array_hash_map.ArrayHashMapWithAllocator) | 🚫             | 🚫      |
+| [`std.BoundedArray` and similar](https://ziglang.org/documentation/master/std/#std.bounded_array)                            | 🚫             | 🚫      |
+| [`std.BufMap`](https://ziglang.org/documentation/master/std/#std.buf_map.BufMap)                                             | 🚫             | 🚫      |
+| [`std.BufSet`](https://ziglang.org/documentation/master/std/#std.buf_set.BufSet)                                             | 🚫             | 🚫      |
+| [`std.StaticStringMap`](https://ziglang.org/documentation/master/std/#std.static_string_map.StaticStringMap)                 | 🚫             | 🚫      |
+| [`std.StaticStringMapWithEql`](https://ziglang.org/documentation/master/std/#std.static_string_map.StaticStringMapWithEql)   | ❗[^1]          |         |
+| [`std.DoublyLinkedList`](https://ziglang.org/documentation/master/std/#std.linked_list.DoublyLinkedList)                     | 🚫             | 🚫      |
+| [`std.EnumArray`](https://ziglang.org/documentation/master/std/#std.enums.EnumArray)                                         | 🚫             | 🚫      |
+| [`std.EnumMap`](https://ziglang.org/documentation/master/std/#std.enums.EnumMap)                                             | 🚫             | 🚫      |
+| [`std.EnumSet`](https://ziglang.org/documentation/master/std/#std.enums.EnumSet)                                             | 🚫             | 🚫      |
+| [`std.HashMap` and similar](https://ziglang.org/documentation/master/std/#std.hash_map.HashMap)                              | 🚫             | 🚫      |
+| [`std.MultiArrayList`](https://ziglang.org/documentation/master/std/#std.multi_array_list.MultiArrayList)                    | ✅              | ✅       |
+| [`std.PriorityQueue`](https://ziglang.org/documentation/master/std/#std.priority_queue.PriorityQueue)                        | ❗[^2]          |         |
+| [`std.PriorityDeQueue`](https://ziglang.org/documentation/master/std/#std.priority_dequeue.PriorityDequeue)                  | ❗[^2]          |         |
+| [`std.SegmentedList`](https://ziglang.org/documentation/master/std/#std.segmented_list.SegmentedList)                        | 🚫             | 🚫      |
+| [`std.SinglyLinkedList`](https://ziglang.org/documentation/master/std/#std.linked_list.SinglyLinkedList)                     | 🚫             | 🚫      |
+| [`std.StaticBitSet` and similar](https://ziglang.org/documentation/master/std/#std.bit_set)                                  | 🚫             | 🚫      |
+| [`std.StringHashMap` and similar](https://ziglang.org/documentation/master/std/#std.hash_map.StringHashMap)                  | 🚫             | 🚫      |
+| [`std.StringArrayHashMap` and similar](https://ziglang.org/documentation/master/std/#std.array_hash_map.StringArrayHashMap)  | 🚫             | 🚫      |
+| [`std.Treap`](https://ziglang.org/documentation/master/std/#std.treap.Treap)                                                 | ❗[^3]          |         |
+| [`std.io.GenericReader`](https://ziglang.org/documentation/master/std/#std.io.GenericReader)                                 | ❗[^4]          |         |
+| [`std.io.GenericWriter`](https://ziglang.org/documentation/master/std/#std.io.GenericWriter)                                 | ❗[^5]          |         |
 
 [^1]: Doesn't expose its `eql: fn (a: []const u8, b: []const u8) bool` parameter.
 [^2]: Doesn't expose its `compareFn: fn (context: Context, a: T, b: T) Order` parameter.
