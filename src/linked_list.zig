@@ -80,10 +80,10 @@ pub inline fn expect(comptime T: type, comptime with: With) Error!void {
 
         switch (with.linkage) {
             .double => if (!@hasField(T.Node, "prev")) return Error.NodeNoPrev,
-            .single => if (@hasField(T.Node, "prev")) return Error.HasPrev,
+            .single => if (@hasField(T.Node, "prev")) return Error.NodeHasPrev,
         }
 
-        const Item = @FieldType(T.Node, "data");
+        const Item = @TypeOf(@field(@as(T.Node, undefined), "data"));
 
         if (with.Item) |ItemType| if (Item != ItemType)
             return Error.ItemNotItem;
@@ -94,7 +94,7 @@ pub inline fn expect(comptime T: type, comptime with: With) Error!void {
         };
 
         if (!from_function)
-            return from_function;
+            return Error.NotFromFunction;
     }
 }
 
@@ -142,7 +142,7 @@ pub inline fn logError(comptime e: Error, comptime T: type, comptime with: With)
 
 pub inline fn Reify(comptime T: type, comptime with: With) type {
     assert(T, with);
-    const Item = @Fieldtype(T.Node, "data");
+    const Item = @TypeOf(@field(@as(T.Node, undefined), "data"));
     return switch (with.linkage) {
         .double => std.DoublyLinkedList(Item),
         .single => std.SinglyLinkedList(Item),
@@ -167,4 +167,68 @@ fn expectError(comptime T: type, comptime with: With, comptime err: Error) !void
     try std.testing.expectError(err, expect(T, with));
 }
 
-test expect {}
+test expect {
+    // when `with.linkage` is set to `.double`, anything that's passed to `std.DoublyLinkedList`
+    // will work
+    try expect(std.DoublyLinkedList(u8), .{ .linkage = .double });
+    try expect(std.DoublyLinkedList(struct {}), .{ .linkage = .double });
+
+    // when `with.linkage` is set to `.single`, anything that's passed to `std.SinglyLinkedList`
+    // will work
+    try expect(std.SinglyLinkedList(u8), .{ .linkage = .single });
+    try expect(std.SinglyLinkedList(struct {}), .{ .linkage = .single });
+
+    // an `Error.NodeNoPrev` occurs when passing a list with single instead of double linking
+    try expectError(std.SinglyLinkedList([4]bool), .{ .linkage = .double }, Error.NodeNoPrev);
+    // an `Error.NodeHasPrev` occurs when passing a list with double instead of single linking
+    try expectError(std.DoublyLinkedList([4]bool), .{ .linkage = .single }, Error.NodeHasPrev);
+
+    // an `Error.NotAStruct` occurs when passing a non-struct type
+    try expectError(enum { not_a_struct }, .{}, Error.NotAStruct);
+
+    // an `Error.IsTuple` occurs when passing a tuple type
+    try expectError(struct { @TypeOf(.is_a_tuple) }, .{}, Error.IsTuple);
+
+    // an `Error.NoNode` occurs when the passed struct doesn't have a `Node` declaration
+    try expectError(struct {
+        node_declaration: bool = false,
+    }, .{}, Error.NoNode);
+
+    // an `Error.NodeNotAType` occurs when the `Node` declaration isn't a type
+    try expectError(struct {
+        node_declaration: bool = true,
+
+        pub const Node = .not_a_type;
+    }, .{}, Error.NodeNotAType);
+
+    // an `Error.NodeNotAStructType` occurs when the `Node` declaration isn't a struct type
+    try expectError(struct {
+        node_declaration: bool = true,
+
+        pub const Node = @TypeOf(.not_a_struct);
+    }, .{}, Error.NodeNotAStructType);
+
+    // an `Error.NodeIsTupleType` occurs when the `Node` declaration is a tuple type.
+    try expectError(struct {
+        node_declaration: bool = true,
+
+        pub const Node = struct { @TypeOf(.tuple) };
+    }, .{}, Error.NodeIsTupleType);
+
+    // an `Error.NodeNoData` occurs when the `Node` declaration doesn't have a `data` field.
+    try expectError(struct {
+        node_declaration: bool = true,
+
+        pub const Node = struct {
+            not_data: @TypeOf(.lol),
+        };
+    }, .{}, Error.NodeNoData);
+
+    // an `Error.NotFromFunction` occurs when even though all other condition was fullfilled,
+    // the given type doesn't come from `std.DoublyLinkedList` or `std.SinglyLinkedList`
+    try expectError(struct {
+        node_declaration: bool = true,
+
+        pub const Node = struct { data: []const u8 };
+    }, .{}, Error.NotFromFunction);
+}
