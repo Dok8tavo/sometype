@@ -29,12 +29,23 @@ pub const multi_array_list = @import("multi_array_list.zig");
 
 pub const expectArrayList = array_list.expect;
 pub const assertArrayList = array_list.assert;
+pub const reifyArrayList = array_list.reify;
+pub const reifyVarArrayList = array_list.reifyVar;
+
+pub const expectHashMap = hash_map.expect;
+pub const assertHashMap = hash_map.assert;
+pub const reifyHashMap = hash_map.reify;
+pub const reifyVarHashMap = hash_map.reifyVar;
 
 pub const expectLinkedList = linked_list.expect;
 pub const assertLinkedListt = linked_list.assert;
+pub const reifyLinkedList = linked_list.reify;
+pub const reifyVarLinkedList = linked_list.reifyVar;
 
 pub const expectMultiArrayList = multi_array_list.expect;
 pub const assertMultiArrayList = multi_array_list.assert;
+pub const reifyMultiArrayList = multi_array_list.reify;
+pub const reifyVarMultiArrayList = multi_array_list.reifyVar;
 
 test {
     _ = array_list;
