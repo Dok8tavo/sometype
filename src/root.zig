@@ -23,6 +23,7 @@
 const std = @import("std");
 
 pub const array_list = @import("array_list.zig");
+pub const hash_map = @import("hash_map.zig");
 pub const linked_list = @import("linked_list.zig");
 pub const multi_array_list = @import("multi_array_list.zig");
 
@@ -37,6 +38,7 @@ pub const assertMultiArrayList = multi_array_list.assert;
 
 test {
     _ = array_list;
+    _ = hash_map;
     _ = linked_list;
     _ = multi_array_list;
 }

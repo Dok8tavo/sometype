@@ -31,23 +31,24 @@ Full test coverage requires testing all possible combinations of sum-type parame
 | [`std.EnumArray`](https://ziglang.org/documentation/master/std/#std.enums.EnumArray)                                         | 🚫             |
 | [`std.EnumMap`](https://ziglang.org/documentation/master/std/#std.enums.EnumMap)                                             | 🚫             |
 | [`std.EnumSet`](https://ziglang.org/documentation/master/std/#std.enums.EnumSet)                                             | 🚫             |
-| [`std.HashMap` and similar](https://ziglang.org/documentation/master/std/#std.hash_map.HashMap)                              | 🚧             |
+| [`std.HashMap` and similar](https://ziglang.org/documentation/master/std/#std.hash_map.HashMap)                              | 🚧[^2]         |
 | [`std.MultiArrayList`](https://ziglang.org/documentation/master/std/#std.multi_array_list.MultiArrayList)                    | ✅              |
-| [`std.PriorityQueue`](https://ziglang.org/documentation/master/std/#std.priority_queue.PriorityQueue)                        | ❗[^2]          |
-| [`std.PriorityDeQueue`](https://ziglang.org/documentation/master/std/#std.priority_dequeue.PriorityDequeue)                  | ❗[^2]          |
+| [`std.PriorityQueue`](https://ziglang.org/documentation/master/std/#std.priority_queue.PriorityQueue)                        | ❗[^3]          |
+| [`std.PriorityDeQueue`](https://ziglang.org/documentation/master/std/#std.priority_dequeue.PriorityDequeue)                  | ❗[^3]          |
 | [`std.SegmentedList`](https://ziglang.org/documentation/master/std/#std.segmented_list.SegmentedList)                        | 🚫             |
 | [`std.StaticBitSet` and similar](https://ziglang.org/documentation/master/std/#std.bit_set)                                  | 🚫             |
 | [`std.StringHashMap` and similar](https://ziglang.org/documentation/master/std/#std.hash_map.StringHashMap)                  | 🚫             |
 | [`std.StringArrayHashMap` and similar](https://ziglang.org/documentation/master/std/#std.array_hash_map.StringArrayHashMap)  | 🚫             |
-| [`std.Treap`](https://ziglang.org/documentation/master/std/#std.treap.Treap)                                                 | ❗[^3]          |
-| [`std.io.GenericReader`](https://ziglang.org/documentation/master/std/#std.io.GenericReader)                                 | ❗[^4]          |
-| [`std.io.GenericWriter`](https://ziglang.org/documentation/master/std/#std.io.GenericWriter)                                 | ❗[^5]          |
+| [`std.Treap`](https://ziglang.org/documentation/master/std/#std.treap.Treap)                                                 | ❗[^4]          |
+| [`std.io.GenericReader`](https://ziglang.org/documentation/master/std/#std.io.GenericReader)                                 | ❗[^5]          |
+| [`std.io.GenericWriter`](https://ziglang.org/documentation/master/std/#std.io.GenericWriter)                                 | ❗[^6]          |
 
 [^1]: Doesn't expose its `eql: fn (a: []const u8, b: []const u8) bool` parameter.
-[^2]: Doesn't expose its `compareFn: fn (context: Context, a: T, b: T) Order` parameter.
-[^3]: Doesn't expose its `compareFn: anytype` parameter.
-[^4]: Doesn't expose its `readFn: fn (context: Context, buffer: []u8) ReadError!usize` parameter.
-[^5]: Doesn't expose its `writeFn: fn (context: Context, bytes: []const u8) WriteError!usize` parameter.
+[^2]: Doesn't expose its `max_load_percentage: u64` parameter but brute force is a workaround.
+[^3]: Doesn't expose its `compareFn: fn (context: Context, a: T, b: T) Order` parameter.
+[^4]: Doesn't expose its `compareFn: anytype` parameter.
+[^5]: Doesn't expose its `readFn: fn (context: Context, buffer: []u8) ReadError!usize` parameter.
+[^6]: Doesn't expose its `writeFn: fn (context: Context, bytes: []const u8) WriteError!usize` parameter.
 
 
 # 📝 Usage
