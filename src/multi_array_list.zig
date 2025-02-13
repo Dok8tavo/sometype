@@ -103,7 +103,7 @@ pub inline fn expect(comptime T: type, comptime with: With) Error!void {
 }
 
 pub inline fn assert(comptime T: type, comptime with: With) void {
-    expect(T, with) catch |e| @compileError(logError(e, T, with));
+    comptime expect(T, with) catch |e| @compileError(logError(e, T, with));
 }
 
 pub inline fn logError(comptime e: Error, comptime T: type, comptime with: With) []const u8 {

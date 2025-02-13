@@ -22,6 +22,9 @@
 
 const std = @import("std");
 
+pub const managed = @import("array_list_managed.zig");
+pub const unmanaged = @import("array_list_unmanaged.zig");
+
 pub const With = struct {
     /// This can't be null because the managed and unmanaged array lists have different APIs
     allocator: bool = true,
@@ -36,31 +39,7 @@ pub const With = struct {
     };
 };
 
-pub const Error = error{
-    NotAStruct,
-    IsTuple,
-    NoAllocator,
-    HasAllocator,
-    /// The `allocator` field isn't of type `std.mem.Allocator`.
-    AllocatorNotAnAllocator,
-    /// There's no `Slice` declaration in the given type.
-    NoSlice,
-    /// The `Slice` declaration isn't a `type`.
-    SliceNotAType,
-    /// The `Slice` declaration isn't the type of a pointer.
-    SliceNotAPointerType,
-    /// The `Slice` declaration isn't the type of a slice.
-    SliceNotASliceType,
-    /// The items of the given type aren't those specified in the `with` parameter.
-    ItemNotItem,
-    /// The alignment of the items isn't exactly the one specified in the `with` parameter.
-    AlignmentNotExact,
-    /// The alignment of the items doesn't guarantee the one specified in the `with` parameter.
-    AlignmentTooSmall,
-    /// The given type respects a lot of requirements, but in the end wasn't returned from
-    /// `std.ArrayList` or its managed/aligned versions.
-    NotFromFunction,
-};
+pub const Error = managed.Error || unmanaged.Error;
 
 pub inline fn expect(comptime T: type, comptime with: With) Error!void {
     comptime {
@@ -122,7 +101,7 @@ pub inline fn expect(comptime T: type, comptime with: With) Error!void {
 }
 
 pub inline fn assert(comptime T: type, comptime with: With) void {
-    expect(T, with) catch |e| @compileError(logError(e, T, with));
+    comptime expect(T, with) catch |e| @compileError(logError(e, T, with));
 }
 
 pub inline fn logError(comptime e: Error, comptime T: type, comptime with: With) []const u8 {
@@ -218,7 +197,7 @@ fn expectError(comptime T: type, comptime with: With, comptime err: Error) !void
 }
 
 test expect {
-    // with only `.allocaator = true` anything that's passed to `std.ArrayListAligned` will work
+    // with only `.allocator = true` anything that's passed to `std.ArrayListAligned` will work
     try expect(std.ArrayList(u8), .{});
     try expect(std.ArrayListAligned(u32, 1), .{});
 

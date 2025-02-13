@@ -22,34 +22,18 @@
 
 const std = @import("std");
 
+pub const doubly = @import("doubly_linked_list.zig");
+pub const singly = @import("singly_linked_list.zig");
+
 pub const With = struct {
     /// This can't be null because the doubly and singly linked lists have different APIs
-    linkage: Linkage = .single,
+    linked: Linked = .singly,
     Item: ?type = null,
 
-    pub const Linkage = enum { double, single };
+    pub const Linked = enum { doubly, singly };
 };
 
-pub const Error = error{
-    NotAStruct,
-    IsTuple,
-    /// There's no `Node` declaration in the given type.
-    NoNode,
-    NodeNotAType,
-    NodeNotAStructType,
-    NodeIsTupleType,
-    /// The `Node` type has no `data` field
-    NodeNoData,
-    /// The `Node` type has no `prev` field when `linkage` is `.double`
-    NodeNoPrev,
-    /// The `Node` type has a `prev` field when `linkage` is `.single`
-    NodeHasPrev,
-    /// The items of the given type aren't those specified in the `with` parameter.
-    ItemNotItem,
-    /// The given type respects a lot of requirements, but in the end wasn't returned from
-    /// `std.SinglyLinkedList` or `std.DoublyLinkedList`.
-    NotFromFunction,
-};
+pub const Error = doubly.Error || singly.Error;
 
 pub inline fn expect(comptime T: type, comptime with: With) Error!void {
     comptime {
@@ -78,9 +62,9 @@ pub inline fn expect(comptime T: type, comptime with: With) Error!void {
         if (!@hasField(T.Node, "data"))
             return Error.NodeNoData;
 
-        switch (with.linkage) {
-            .double => if (!@hasField(T.Node, "prev")) return Error.NodeNoPrev,
-            .single => if (@hasField(T.Node, "prev")) return Error.NodeHasPrev,
+        switch (with.linked) {
+            .doubly => if (!@hasField(T.Node, "prev")) return Error.NodeNoPrev,
+            .singly => if (@hasField(T.Node, "prev")) return Error.NodeHasPrev,
         }
 
         const Item = @TypeOf(@field(@as(T.Node, undefined), "data"));
@@ -88,9 +72,9 @@ pub inline fn expect(comptime T: type, comptime with: With) Error!void {
         if (with.Item) |ItemType| if (Item != ItemType)
             return Error.ItemNotItem;
 
-        const from_function = switch (with.linkage) {
-            .double => T == std.DoublyLinkedList(Item),
-            .single => T == std.SinglyLinkedList(Item),
+        const from_function = switch (with.linked) {
+            .doubly => T == std.DoublyLinkedList(Item),
+            .singly => T == std.SinglyLinkedList(Item),
         };
 
         if (!from_function)
@@ -99,7 +83,7 @@ pub inline fn expect(comptime T: type, comptime with: With) Error!void {
 }
 
 pub inline fn assert(comptime T: type, comptime with: With) void {
-    expect(T, with) catch |e| @compileError(logError(e, T, with));
+    comptime expect(T, with) catch |e| @compileError(logError(e, T, with));
 }
 
 pub inline fn logError(comptime e: Error, comptime T: type, comptime with: With) []const u8 {
@@ -107,9 +91,9 @@ pub inline fn logError(comptime e: Error, comptime T: type, comptime with: With)
         const fmt = std.fmt.comptimePrint;
         const isnt_linked_list = fmt("The type `{s}` isn't a `std.{s}List({s})` because {{s}}!", .{
             @typeName(T),
-            switch (with.linkage) {
-                .double => "Doubly",
-                .single => "Singly",
+            switch (with.linked) {
+                .doubly => "Doubly",
+                .singly => "Singly",
             },
             if (with.Item) |Item| @typeName(Item) else "...",
         });
@@ -129,9 +113,9 @@ pub inline fn logError(comptime e: Error, comptime T: type, comptime with: With)
             Error.NotAStruct => "it's not a struct type",
             Error.NotFromFunction => fmt(
                 "it's not the result of the `std.{s}LinkedList` function",
-                .{switch (with.linkage) {
-                    .double => "Doubly",
-                    .single => "Singly",
+                .{switch (with.linked) {
+                    .doubly => "Doubly",
+                    .singly => "Singly",
                 }},
             ),
         };
@@ -143,9 +127,9 @@ pub inline fn logError(comptime e: Error, comptime T: type, comptime with: With)
 pub inline fn Reify(comptime T: type, comptime with: With) type {
     assert(T, with);
     const Item = @TypeOf(@field(@as(T.Node, undefined), "data"));
-    return switch (with.linkage) {
-        .double => std.DoublyLinkedList(Item),
-        .single => std.SinglyLinkedList(Item),
+    return switch (with.linked) {
+        .doubly => std.DoublyLinkedList(Item),
+        .singly => std.SinglyLinkedList(Item),
     };
 }
 
@@ -168,20 +152,20 @@ fn expectError(comptime T: type, comptime with: With, comptime err: Error) !void
 }
 
 test expect {
-    // when `with.linkage` is set to `.double`, anything that's passed to `std.DoublyLinkedList`
+    // when `with.linked` is set to `.doubly`, anything that's passed to `std.DoublyLinkedList`
     // will work
-    try expect(std.DoublyLinkedList(u8), .{ .linkage = .double });
-    try expect(std.DoublyLinkedList(struct {}), .{ .linkage = .double });
+    try expect(std.DoublyLinkedList(u8), .{ .linked = .doubly });
+    try expect(std.DoublyLinkedList(struct {}), .{ .linked = .doubly });
 
-    // when `with.linkage` is set to `.single`, anything that's passed to `std.SinglyLinkedList`
+    // when `with.linked` is set to `.singly`, anything that's passed to `std.SinglyLinkedList`
     // will work
-    try expect(std.SinglyLinkedList(u8), .{ .linkage = .single });
-    try expect(std.SinglyLinkedList(struct {}), .{ .linkage = .single });
+    try expect(std.SinglyLinkedList(u8), .{ .linked = .singly });
+    try expect(std.SinglyLinkedList(struct {}), .{ .linked = .singly });
 
-    // an `Error.NodeNoPrev` occurs when passing a list with single instead of double linking
-    try expectError(std.SinglyLinkedList([4]bool), .{ .linkage = .double }, Error.NodeNoPrev);
-    // an `Error.NodeHasPrev` occurs when passing a list with double instead of single linking
-    try expectError(std.DoublyLinkedList([4]bool), .{ .linkage = .single }, Error.NodeHasPrev);
+    // an `Error.NodeNoPrev` occurs when passing a list with singly instead of doubly linked
+    try expectError(std.SinglyLinkedList([4]bool), .{ .linked = .doubly }, Error.NodeNoPrev);
+    // an `Error.NodeHasPrev` occurs when passing a list with doubly instead of singly linked
+    try expectError(std.DoublyLinkedList([4]bool), .{ .linked = .singly }, Error.NodeHasPrev);
 
     // an `Error.NotAStruct` occurs when passing a non-struct type
     try expectError(enum { not_a_struct }, .{}, Error.NotAStruct);

@@ -23,24 +23,54 @@
 const std = @import("std");
 
 pub const array_list = @import("array_list.zig");
-pub const hash_map = @import("hash_map.zig");
+pub const array_list_managed = @import("array_list_managed.zig");
+pub const array_list_unmanaged = @import("array_list_unmanaged.zig");
+
+pub const bounded_array = @import("bounded_array.zig");
+
 pub const linked_list = @import("linked_list.zig");
+pub const singly_linked_list = @import("singly_linked_list.zig");
+pub const doubly_linked_list = @import("doubly_linked_list.zig");
+
 pub const multi_array_list = @import("multi_array_list.zig");
 
+// array lists
 pub const expectArrayList = array_list.expect;
 pub const assertArrayList = array_list.assert;
 pub const reifyArrayList = array_list.reify;
 pub const reifyVarArrayList = array_list.reifyVar;
 
-pub const expectHashMap = hash_map.expect;
-pub const assertHashMap = hash_map.assert;
-pub const reifyHashMap = hash_map.reify;
-pub const reifyVarHashMap = hash_map.reifyVar;
+pub const expectArrayListManaged = array_list_managed.expect;
+pub const assertArrayListManaged = array_list_managed.assert;
+pub const reifyArrayListManaged = array_list_managed.reify;
+pub const reifyVarArrayListManaged = array_list_managed.reifyVar;
 
+pub const expectArrayListUnanaged = array_list_unmanaged.expect;
+pub const assertArrayListUnanaged = array_list_unmanaged.assert;
+pub const reifyArrayListUnanaged = array_list_unmanaged.reify;
+pub const reifyVarArrayListUnanaged = array_list_unmanaged.reifyVar;
+
+// bounded array
+pub const expectBoundedArray = bounded_array.expect;
+pub const assertBoundedArray = bounded_array.assert;
+pub const reifyBoundedArray = bounded_array.reify;
+pub const reifyVarBoundedArray = bounded_array.reifyVar;
+
+// linked lists
 pub const expectLinkedList = linked_list.expect;
 pub const assertLinkedListt = linked_list.assert;
 pub const reifyLinkedList = linked_list.reify;
 pub const reifyVarLinkedList = linked_list.reifyVar;
+
+pub const expectSinglyLinkedList = singly_linked_list.expect;
+pub const assertSinglyLinkedList = singly_linked_list.assert;
+pub const reifySinglyLinkedList = singly_linked_list.reify;
+pub const reifyVarSinglyLinkedList = singly_linked_list.reifyVar;
+
+pub const expectDoublyLinkedList = doubly_linked_list.expect;
+pub const assertDoublyLinkedList = doubly_linked_list.assert;
+pub const reifyDoublyLinkedList = doubly_linked_list.reify;
+pub const reifyVarDoublyLinkedList = doubly_linked_list.reifyVar;
 
 pub const expectMultiArrayList = multi_array_list.expect;
 pub const assertMultiArrayList = multi_array_list.assert;
@@ -49,7 +79,14 @@ pub const reifyVarMultiArrayList = multi_array_list.reifyVar;
 
 test {
     _ = array_list;
-    _ = hash_map;
+    _ = array_list_managed;
+    _ = array_list_unmanaged;
+
+    _ = bounded_array;
+
     _ = linked_list;
+    _ = doubly_linked_list;
+    _ = singly_linked_list;
+
     _ = multi_array_list;
 }

@@ -23,7 +23,7 @@ Full test coverage requires testing all possible combinations of sum-type parame
 |------------------------------------------------------------------------------------------------------------------------------|----------------|
 | [`std.ArrayList` and similar](https://ziglang.org/documentation/master/std/#std.array_list)                                  | ✅              |
 | [`std.ArrayHashMap` and similar](https://ziglang.org/documentation/master/std/#std.array_hash_map.ArrayHashMapWithAllocator) | 🚫             |
-| [`std.BoundedArray` and similar](https://ziglang.org/documentation/master/std/#std.bounded_array)                            | 🚫             |
+| [`std.BoundedArray` and similar](https://ziglang.org/documentation/master/std/#std.bounded_array)                            | 🚧             |
 | [`std.BufSet`](https://ziglang.org/documentation/master/std/#std.buf_set.BufSet)                                             | 🚫             |
 | [`std.StaticStringMap`](https://ziglang.org/documentation/master/std/#std.static_string_map.StaticStringMap)                 | 🚫             |
 | [`std.StaticStringMapWithEql`](https://ziglang.org/documentation/master/std/#std.static_string_map.StaticStringMapWithEql)   | ❗[^1]          |

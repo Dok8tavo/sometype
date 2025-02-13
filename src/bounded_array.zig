@@ -30,7 +30,6 @@ pub const With = struct {
     pub const Capacity = union(enum) {
         exact: usize,
         at_least: usize,
-        mod_suggested_vector_length,
     };
 
     pub const Alignment = union(enum) {
@@ -52,8 +51,6 @@ pub const Error = error{
     AlignmentTooSmall,
     CapacityTooSmall,
     CapacityNotExact,
-    CapacityNotModSuggestedVectorLength,
-    NoSuggestedVectorLength,
     NotFromFunction,
 };
 
@@ -95,12 +92,85 @@ pub inline fn expect(comptime T: type, comptime with: With) Error!void {
         if (with.capacity) |with_capacity| switch (with_capacity) {
             .at_least => if (capacity < with_capacity) return Error.CapacityTooSmall,
             .exact => if (capacity != with_capacity) return Error.CapacityNotExact,
-            .mod_suggested_vector_length => if (std.simd.suggestVectorLength(Item)) |svl| {
-                if (capacity % svl != 0) return Error.CapacityNotModSuggestedVectorLength;
-            } else return Error.NoSuggestedVectorLength,
         };
 
         return if (T != std.BoundedArrayAligned(Item, alignment, capacity))
             Error.NotFromFunction;
     }
+}
+
+pub inline fn assert(comptime T: type, comptime with: With) void {
+    comptime expect(T, with) catch |e| @compileError(logError(e, T, with));
+}
+
+pub inline fn logError(comptime e: Error, comptime T: type, comptime with: With) []const u8 {
+    comptime {
+        const fmt = std.fmt.comptimePrint;
+        const function = "std.BoundedArray" ++ if (with.alignment) |alignment| switch (alignment) {
+            .natural => "",
+            else => "Aligned",
+        } else "Aligned";
+        const first_argument = (if (with.Item) |Item| @typeName(Item) else "...") ++ ",";
+        const second_argument = if (with.alignment) |alignment| switch (alignment) {
+            .exact => |exact| fmt("{},", .{exact}),
+            .natural => "",
+            .at_least => |at_least| fmt(">={},", .{at_least}),
+            .at_least_natural => fmt(">=@alignOf({s}),", first_argument[0..first_argument.len -| 1]),
+        } else "...,";
+        const third_argument = if (with.capacity) |capacity| switch (capacity) {
+            .exact => |exact| fmt("{}", .{exact}),
+            .at_least => |at_least| fmt(">={}", .{at_least}),
+        } else "...";
+
+        return fmt(
+            "The type `{s}` isn't a `{s}({s})` because {s}!",
+            .{
+                @typeName(T),
+                function,
+                first_argument ++ second_argument ++ third_argument,
+                switch (e) {
+                    Error.AlignmentNotExact, Error.AlignmentTooSmall => fmt(
+                        "its `buffer` field alignment is {}",
+                        .{std.meta.fieldInfo(T, "buffer").alignment},
+                    ),
+                    Error.BufferNotArray => "its `buffer` field isn't an array",
+                    Error.CapacityNotExact, Error.CapacityTooSmall => fmt(
+                        "its capacity is {}",
+                        .{@typeInfo(std.meta.fieldInfo(T, "buffer").type).array.len},
+                    ),
+                    Error.IsTuple => "it's a tuple",
+                    Error.ItemNotItem => fmt(
+                        "its items are `{s}`",
+                        .{@typeName(@typeInfo(std.meta.fieldInfo(T, "buffer").type).array.child)},
+                    ),
+                    Error.NoBuffer => "it doesn't have a `buffer` field",
+                    Error.NotAStruct => "it isn't a struct type",
+                    Error.NotFromFunction => fmt("it wasn't returned by `{s}`", .{function}),
+                },
+            },
+        );
+    }
+}
+
+pub inline fn Reify(comptime T: type, comptime with: With) type {
+    assert(T, with);
+    const buffer_info = std.meta.fieldInfo(T, "buffer");
+    const Item = @typeInfo(buffer_info.type).array.child;
+    const alignment = buffer_info.alignment;
+    const capacity = @typeInfo(buffer_info.type).array.len;
+    return std.BoundedArrayAligned(Item, alignment, capacity);
+}
+
+pub inline fn reify(
+    bounded_array_ptr: anytype,
+    comptime with: With,
+) *const Reify(@TypeOf(bounded_array_ptr.*), with) {
+    return bounded_array_ptr;
+}
+
+pub inline fn reifyVar(
+    bounded_array_ptr: anytype,
+    comptime with: With,
+) *Reify(@TypeOf(bounded_array_ptr.*), with) {
+    return bounded_array_ptr;
 }
